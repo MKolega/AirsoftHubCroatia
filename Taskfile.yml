@@ -1,0 +1,55 @@
+# Taskfile.yml
+version: '3'
+
+tasks:
+  # Run the Go app with live reload
+  run:
+    cmds:
+      - air
+    desc: "Run the API with hot reload (using Air)"
+
+  # Run the linter
+  lint:
+    cmds:
+      - golangci-lint run ./...
+    desc: "Run GolangCI-Lint for code quality checks"
+
+  # Run tests
+  test:
+    cmds:
+      - go test ./... -v
+    desc: "Run all unit tests with verbose output"
+
+  # Run database migrations (up)
+  migrate-up:
+    cmds:
+      - migrate -path db/migrations -database "{{.DB_URL}}" up
+    desc: "Apply all database migrations"
+    vars:
+      DB_URL: "postgres://user:password@localhost:5432/mydb?sslmode=disable"
+
+  # Rollback last migration (down)
+  migrate-down:
+    cmds:
+      - migrate -path db/migrations -database "{{.DB_URL}}" down 1
+    desc: "Rollback the last database migration"
+    vars:
+      DB_URL: "postgres://user:password@localhost:5432/mydb?sslmode=disable"
+
+  # Generate SQLC code
+  sqlc:
+    cmds:
+      - sqlc generate
+    desc: "Generate Go code from SQL queries (sqlc)"
+
+  # Build the project
+  build:
+    cmds:
+      - go build -o bin/app ./cmd/api
+    desc: "Build the Go binary into ./bin/app"
+
+  # Clean build artifacts
+  clean:
+    cmds:
+      - rm -rf bin/*
+    desc: "Remove compiled binaries"
