@@ -16,7 +16,7 @@ func Load() Config {
 
 	cfg := Config{
 		Address: getEnv("APP_ADDRESS", ":8080"),
-		DBUrl:   getEnv("DATABASE_URL", "postgres://user:pass@localhost:5432/sportmap?sslmode=disable"),
+		DBUrl:   getEnv("DATABASE_URL", "postgres://user:pass@localhost:54321airsoftdb?sslmode=disable"),
 	}
 	return cfg
 }

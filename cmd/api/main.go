@@ -1,27 +1,33 @@
-package api
+package main
 
 import (
 	"log"
 
-	_ "github.com/MKolega/AirsoftHubCroatia/internal/db"
+	"github.com/MKolega/AirsoftHubCroatia/handlers"
+	"github.com/MKolega/AirsoftHubCroatia/internal/config"
+	"github.com/MKolega/AirsoftHubCroatia/internal/db"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
-import "net/http"
 
 func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Fatal(err)
 	}
+
+	if err := db.Init(); err != nil {
+		log.Fatal("Failed to initialize database:", err)
+	}
+	if err := db.CreateEventsTable(); err != nil {
+		log.Fatal("Failed to create events table:", err)
+	}
+	cfg := config.Load()
 	router := gin.Default()
 
-	router.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-		})
-	})
+	router.GET("/", handlers.HomeHandler)
+	//router.GET("/events", handlers.EventsHandler)
 
-	if err := router.Run(":8080"); err != nil {
+	if err := router.Run(cfg.Address); err != nil {
 		log.Fatal("Failed to run server:", err)
 	}
 
