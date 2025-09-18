@@ -25,8 +25,10 @@ func main() {
 	router := gin.Default()
 
 	router.GET("/", handlers.HomeHandler)
-	//router.GET("/events", handlers.EventsHandler)
-
+	router.GET("/events", handlers.EventsHandler)
+	router.POST("/events", handlers.CreateEventHandler)
+	router.PUT("/events/:id", handlers.UpdateEventHandler)
+	router.DELETE("/events/:id", handlers.DeleteEventHandler)
 	if err := router.Run(cfg.Address); err != nil {
 		log.Fatal("Failed to run server:", err)
 	}
