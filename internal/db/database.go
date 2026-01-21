@@ -4,8 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net"
+	"net/url"
 	"os"
+	"strings"
 
+	"github.com/MKolega/AirsoftHubCroatia/internal/config"
 	"github.com/MKolega/AirsoftHubCroatia/types"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -17,21 +21,105 @@ import (
 
 var Bun *bun.DB
 
+func makePostgresURI(user, pass, host, port, dbname string) string {
+	u := &url.URL{
+		Scheme: "postgres",
+		Host:   net.JoinHostPort(host, port),
+		Path:   "/" + dbname,
+	}
+	if pass == "" {
+		u.User = url.User(user)
+	} else {
+		u.User = url.UserPassword(user, pass)
+	}
+	q := u.Query()
+	q.Set("sslmode", "disable")
+	u.RawQuery = q.Encode()
+	return u.String()
+}
+
 func CreateDatabase() (*sql.DB, error) {
 	_ = godotenv.Load()
-	var (
-		dbname = os.Getenv("DB_NAME")
-		dbuser = os.Getenv("DB_USER")
-		dbpass = os.Getenv("DB_PASS")
-		dbhost = os.Getenv("DB_HOST")
-		uri    = fmt.Sprintf("postgres://%s:%s@%s:5431/%s?sslmode=disable", dbuser, dbpass, dbhost, dbname)
-	)
-	db, err := sql.Open("postgres", uri)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %v", err)
-	}
-	return db, nil
 
+	databaseURL := strings.TrimSpace(os.Getenv("DATABASE_URL"))
+	var dbname, dbuser, dbpass, dbhost, dbport string
+
+	if databaseURL != "" {
+		parsed, err := url.Parse(databaseURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse DATABASE_URL: %v", err)
+		}
+		if parsed.User != nil {
+			dbuser = parsed.User.Username()
+			dbpass, _ = parsed.User.Password()
+		}
+		host, port, err := net.SplitHostPort(parsed.Host)
+		if err != nil {
+
+			host = parsed.Host
+			port = ""
+		}
+		dbhost = host
+		dbport = port
+		dbname = strings.TrimPrefix(parsed.Path, "/")
+
+	}
+
+	// fallback to defaults
+	if dbname == "" {
+		dbname = config.GetEnv("DB_NAME", "airsoftdb")
+	}
+	if dbuser == "" {
+		dbuser = config.GetEnv("DB_USER", "postgres")
+	}
+	if dbpass == "" {
+		dbpass = config.GetEnv("DB_PASS", "")
+	}
+	if dbhost == "" {
+		dbhost = config.GetEnv("DB_HOST", "localhost")
+	}
+	if dbport == "" {
+		dbport = config.GetEnv("DB_PORT", "5431")
+	}
+
+	// connect to the server's admin DB
+	adminURI := makePostgresURI(dbuser, dbpass, dbhost, dbport, "postgres")
+	adminDB, err := sql.Open("postgres", adminURI)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to admin database: %v", err)
+	}
+	defer adminDB.Close()
+
+	if err := adminDB.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping admin database: %v", err)
+	}
+
+	var exists bool
+	err = adminDB.QueryRow("SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname=$1)", dbname).Scan(&exists)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check database existence: %v", err)
+	}
+
+	if !exists {
+		// Create database
+		createQuery := fmt.Sprintf(`CREATE DATABASE "%s"`, dbname)
+		if _, err := adminDB.Exec(createQuery); err != nil {
+			return nil, fmt.Errorf("failed to create database %s: %v", dbname, err)
+		}
+	}
+
+	// connect to the target database
+	targetURI := makePostgresURI(dbuser, dbpass, dbhost, dbport, dbname)
+	db, err := sql.Open("postgres", targetURI)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to target database: %v", err)
+	}
+	if err := db.Ping(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to ping target database: %v", err)
+	}
+
+	return db, nil
 }
 
 func Init() error {

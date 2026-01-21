@@ -11,15 +11,13 @@ import (
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal(err)
-	}
+	_ = godotenv.Load()
 
 	if err := db.Init(); err != nil {
-		log.Fatal("Failed to initialize database:", err)
+		log.Fatalf("Failed to initialize database: %v", err)
 	}
 	if err := db.CreateEventsTable(); err != nil {
-		log.Fatal("Failed to create events table:", err)
+		log.Fatalf("Failed to create events table: %v", err)
 	}
 	cfg := config.Load()
 	router := gin.Default()
@@ -30,7 +28,7 @@ func main() {
 	router.PUT("/events/:id", handlers.UpdateEventHandler)
 	router.DELETE("/events/:id", handlers.DeleteEventHandler)
 	if err := router.Run(cfg.Address); err != nil {
-		log.Fatal("Failed to run server:", err)
+		log.Fatalf("Failed to run server: %v", err)
 	}
 
 }

@@ -12,16 +12,16 @@ type Config struct {
 }
 
 func Load() Config {
-	_ = godotenv.Load() // load .env file if present
+	_ = godotenv.Load()
 
 	cfg := Config{
-		Address: getEnv("APP_ADDRESS", ":8080"),
-		DBUrl:   getEnv("DATABASE_URL", "postgres://user:pass@localhost:54321airsoftdb?sslmode=disable"),
+		Address: GetEnv("APP_ADDRESS", ":8080"),
+		DBUrl:   GetEnv("DATABASE_URL", "postgres://user:pass@localhost:5431/airsoftdb?sslmode=disable"),
 	}
 	return cfg
 }
 
-func getEnv(key, fallback string) string {
+func GetEnv(key, fallback string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
 	}
