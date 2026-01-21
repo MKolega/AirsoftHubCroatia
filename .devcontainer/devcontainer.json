@@ -1,8 +1,9 @@
 {
-  "name": "Backend Dev",
-  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "name": "Go + Docker Dev",
+  "image": "mcr.microsoft.com/devcontainers/go:1.22",
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
-  "forwardPorts": [8080, 5432]
+  "forwardPorts": [8080, 5432],
+  "postCreateCommand": "go version"
 }
