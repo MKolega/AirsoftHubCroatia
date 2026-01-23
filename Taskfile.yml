@@ -53,3 +53,10 @@ tasks:
     cmds:
       - rm -rf bin/*
     desc: "Remove compiled binaries"
+
+  frontend-dev:
+    dir: frontend
+    cmds:
+      - npm install
+      - npm run dev -- --host
+    desc: "Run the Vite frontend (http://localhost:5173)"

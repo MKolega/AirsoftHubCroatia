@@ -1,0 +1,5 @@
+{
+  // Ensure VS Code uses the repo's TypeScript version (important in workspaces/monorepos).
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true
+}
