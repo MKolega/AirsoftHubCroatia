@@ -174,8 +174,8 @@ func SeedEventsTable() error {
 		return nil
 	}
 	events := []types.Event{
-		{Name: "Event 1", Description: "Desc 1", Lat: 45.0, Lng: 16.0, Date: "2024-07-01"},
-		{Name: "Event 2", Description: "Desc 2", Lat: 46.0, Lng: 17.0, Date: "2024-07-15"},
+		{Name: "Event 1", Description: "Desc 1", Location: "Croatia", Lat: 45.0, Lng: 16.0, Date: "2024-07-01"},
+		{Name: "Event 2", Description: "Desc 2", Location: "Croatia", Lat: 46.0, Lng: 17.0, Date: "2024-07-15"},
 	}
 	_, err = Bun.NewInsert().Model(&events).Exec(context.Background())
 	return err

@@ -1,10 +1,11 @@
 package types
 
 type Event struct {
-	ID          int     `bun:"id,pk,autoincrement"`
-	Name        string  `json:"name"`
-	Date        string  `json:"date"`
-	Description string  `json:"description"`
-	Lat         float64 `json:"lat"`
-	Lng         float64 `json:"lng"`
+	ID          int     `bun:"id,pk,autoincrement" json:"id"`
+	Name        string  `bun:"name,notnull" json:"name"`
+	Date        string  `bun:"date" json:"date"`
+	Description string  `bun:"description" json:"description"`
+	Location    string  `bun:"location" json:"location"`
+	Lat         float64 `bun:"lat" json:"lat"`
+	Lng         float64 `bun:"lng" json:"lng"`
 }
