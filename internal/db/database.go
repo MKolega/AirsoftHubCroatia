@@ -143,16 +143,29 @@ func Init() error {
 
 func CreateEventsTable() error {
 	query := `CREATE TABLE IF NOT EXISTS events (
-            id SERIAL PRIMARY KEY,
-            name TEXT NOT NULL,
-            description TEXT,
-            lat DOUBLE PRECISION,
-            lng DOUBLE PRECISION,
-            location TEXT,
-            date DATE
-        );`
+			id SERIAL PRIMARY KEY,
+			name TEXT NOT NULL,
+			description TEXT,
+			lat DOUBLE PRECISION,
+			lng DOUBLE PRECISION,
+			location TEXT,
+			date DATE,
+			facebook_link TEXT,
+			thumbnail TEXT
+		);`
 	_, err := Bun.ExecContext(context.Background(), query)
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Ensure columns exist for older databases.
+	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ADD COLUMN IF NOT EXISTS facebook_link TEXT;`); err != nil {
+		return err
+	}
+	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ADD COLUMN IF NOT EXISTS thumbnail TEXT;`); err != nil {
+		return err
+	}
+	return nil
 }
 
 func GetEventsFromDB() ([]types.Event, error) {
@@ -174,8 +187,8 @@ func SeedEventsTable() error {
 		return nil
 	}
 	events := []types.Event{
-		{Name: "Event 1", Description: "Desc 1", Location: "Croatia", Lat: 45.0, Lng: 16.0, Date: "2024-07-01"},
-		{Name: "Event 2", Description: "Desc 2", Location: "Croatia", Lat: 46.0, Lng: 17.0, Date: "2024-07-15"},
+		{Name: "Event 1", Description: "Desc 1", Location: "Croatia", Lat: 45.0, Lng: 16.0, Date: "2024-07-01", FacebookLink: "https://www.facebook.com/events/792766179793560"},
+		{Name: "Event 2", Description: "Desc 2", Location: "Croatia", Lat: 46.0, Lng: 17.0, Date: "2024-07-15", FacebookLink: "https://www.facebook.com/events/2075916069838446"},
 	}
 	_, err = Bun.NewInsert().Model(&events).Exec(context.Background())
 	return err
@@ -188,6 +201,15 @@ func InsertEventToDB(event *types.Event) error {
 
 func UpdateEventInDB(id string, event *types.Event) error {
 	_, err := Bun.NewUpdate().Model(event).Where("id = ?", id).Exec(context.Background())
+	return err
+}
+
+func UpdateEventInDBColumns(id string, event *types.Event, columns ...string) error {
+	q := Bun.NewUpdate().Model(event)
+	if len(columns) > 0 {
+		q = q.Column(columns...)
+	}
+	_, err := q.Where("id = ?", id).Exec(context.Background())
 	return err
 }
 

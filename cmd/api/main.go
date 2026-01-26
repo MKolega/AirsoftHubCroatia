@@ -22,6 +22,9 @@ func main() {
 	cfg := config.Load()
 	router := gin.Default()
 
+	// Serve locally stored thumbnails
+	router.Static("/uploads", "./uploads")
+
 	router.GET("/", handlers.HomeHandler)
 
 	router.GET("/events", handlers.EventsHandler)

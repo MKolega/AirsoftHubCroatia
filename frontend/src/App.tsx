@@ -1,6 +1,9 @@
-import React, { useEffect, useState } from 'react'
-import './App.css'
+import React, { useState, useEffect } from 'react';
+import './App.css';
 import EventsMap from './components/EventsMap';
+import EventsPage from './components/EventsPage'; // new file
+import AdminCreateEvent from './components/CreateEvent';
+import EditEvent from './components/EditEvent';
 
 class ErrorBoundary extends React.Component<React.PropsWithChildren, { error: unknown }> {
   state = { error: null as unknown };
@@ -26,42 +29,46 @@ class ErrorBoundary extends React.Component<React.PropsWithChildren, { error: un
   }
 }
 
-type Page = 'map' | 'events'
+type Page = 'map' | 'events' | 'create-event' | 'edit-event';
+
+type Route =
+  | { page: 'map' }
+  | { page: 'events' }
+  | { page: 'create-event' }
+  | { page: 'edit-event'; eventId: number };
+
+function getRouteFromPath(pathname: string): Route {
+  const editMatch = pathname.match(/^\/events\/(\d+)\/edit/);
+  if (editMatch) return { page: 'edit-event', eventId: Number.parseInt(editMatch[1]!, 10) };
+  if (pathname.startsWith('/events/create')) return { page: 'create-event' };
+  if (pathname.startsWith('/events')) return { page: 'events' };
+  return { page: 'map' };
+}
 
 function App() {
-  const [page, setPage] = useState<Page>(() =>
-    window.location.pathname.startsWith('/events') ? 'events' : 'map'
-  )
-  const [events, setEvents] = useState<Array<{ id: number; name: string; date?: string; location?: string; description?: string }>>([])
-  const [eventsError, setEventsError] = useState<string | null>(null)
-  const [eventsLoading, setEventsLoading] = useState(false)
+  const [route, setRoute] = useState<Route>(() => getRouteFromPath(window.location.pathname));
 
+  
   useEffect(() => {
-    const onPopState = () => setPage(window.location.pathname.startsWith('/events') ? 'events' : 'map')
-    window.addEventListener('popstate', onPopState)
-    return () => window.removeEventListener('popstate', onPopState)
-  }, [])
+    const onPopState = () => {
+      setRoute(getRouteFromPath(window.location.pathname));
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   const navigate = (to: Page) => {
-    const path = to === 'events' ? '/events' : '/'
-    window.history.pushState({}, '', path)
-    setPage(to)
-  }
+    const path =
+      to === 'events' ? '/events' : to === 'create-event' ? '/events/create' : to === 'map' ? '/' : '/events';
+    window.history.pushState({}, '', path);
+    setRoute(getRouteFromPath(path));
+  };
 
-  useEffect(() => {
-    if (page !== 'events') return
-    setEventsLoading(true)
-    setEventsError(null)
-
-    fetch('/api/events')
-      .then(async r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`)
-        return r.json()
-      })
-      .then(data => setEvents(Array.isArray(data) ? data : []))
-      .catch(err => setEventsError(err instanceof Error ? err.message : String(err)))
-      .finally(() => setEventsLoading(false))
-  }, [page])
+  const navigateEdit = (eventId: number) => {
+    const path = `/events/${eventId}/edit`;
+    window.history.pushState({}, '', path);
+    setRoute({ page: 'edit-event', eventId });
+  };
 
   return (
     <ErrorBoundary>
@@ -69,38 +76,26 @@ function App() {
         <aside className="sidebar">
           <div className="sidebar__section">
             <div className="sidebar__title">Navigation</div>
-            <button className="sidebar__btn" onClick={() => navigate('events')}>Events</button>
-            <button className="sidebar__btn" onClick={() => navigate('map')}>Map</button>
+            <button className="sidebar__btn" onClick={() => navigate('events')}>
+              Events
+            </button>
+            <button className="sidebar__btn" onClick={() => navigate('map')}>
+              Map
+            </button>
           </div>
         </aside>
 
         <main className="content">
-          {page === 'map' && <EventsMap />}
-
-          {page === 'events' && (
-            <div className="page">
-              <h2 style={{ marginTop: 0 }}>Events</h2>
-
-              {eventsLoading && <div>Loading…</div>}
-              {eventsError && <div style={{ color: '#dc3545' }}>Error: {eventsError}</div>}
-
-              {!eventsLoading && !eventsError && (
-                <div style={{ display: 'grid', gap: 12 }}>
-                  {events.length === 0 ? (
-                    <div>No events found.</div>
-                  ) : (
-                    events.map(e => (
-                      <div key={e.id} className="eventCard">
-                        <div style={{ fontWeight: 700 }}>{e.name}</div>
-                        {e.date && <div>Date: {e.date}</div>}
-                        {e.location && <div>{e.location}</div>}
-                        {e.description && <div>{e.description}</div>}
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
+          {route.page === 'map' && <EventsMap />}
+          {route.page === 'events' && (
+            <EventsPage
+              onCreateEvent={() => navigate('create-event')}
+              onEditEvent={id => navigateEdit(id)}
+            />
+          )}
+          {route.page === 'create-event' && <AdminCreateEvent />}
+          {route.page === 'edit-event' && (
+            <EditEvent eventId={route.eventId} onDone={() => navigate('events')} />
           )}
         </main>
       </div>
@@ -108,4 +103,4 @@ function App() {
   );
 }
 
-export default App
+export default App;

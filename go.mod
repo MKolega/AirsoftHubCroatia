@@ -14,7 +14,10 @@ require (
 	github.com/uptrace/bun/extra/bundebug v1.2.15
 )
 
+require github.com/andybalholm/cascadia v1.3.3 // indirect
+
 require (
+	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
