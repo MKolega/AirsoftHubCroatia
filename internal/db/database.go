@@ -146,10 +146,12 @@ func CreateEventsTable() error {
 			id SERIAL PRIMARY KEY,
 			name TEXT NOT NULL,
 			description TEXT,
+			detailed_description TEXT,
 			lat DOUBLE PRECISION,
 			lng DOUBLE PRECISION,
 			location TEXT,
 			date DATE,
+			category TEXT DEFAULT 'Skirmish',
 			facebook_link TEXT,
 			thumbnail TEXT
 		);`
@@ -159,7 +161,20 @@ func CreateEventsTable() error {
 	}
 
 	// Ensure columns exist for older databases.
+	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ADD COLUMN IF NOT EXISTS category TEXT;`); err != nil {
+		return err
+	}
+	// Default and backfill for older rows.
+	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ALTER COLUMN category SET DEFAULT 'Skirmish';`); err != nil {
+		return err
+	}
+	if _, err := Bun.ExecContext(context.Background(), `UPDATE events SET category='Skirmish' WHERE category IS NULL OR category='';`); err != nil {
+		return err
+	}
 	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ADD COLUMN IF NOT EXISTS facebook_link TEXT;`); err != nil {
+		return err
+	}
+	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ADD COLUMN IF NOT EXISTS detailed_description TEXT;`); err != nil {
 		return err
 	}
 	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ADD COLUMN IF NOT EXISTS thumbnail TEXT;`); err != nil {
@@ -187,8 +202,8 @@ func SeedEventsTable() error {
 		return nil
 	}
 	events := []types.Event{
-		{Name: "Event 1", Description: "Desc 1", Location: "Croatia", Lat: 45.0, Lng: 16.0, Date: "2024-07-01", FacebookLink: "https://www.facebook.com/events/792766179793560"},
-		{Name: "Event 2", Description: "Desc 2", Location: "Croatia", Lat: 46.0, Lng: 17.0, Date: "2024-07-15", FacebookLink: "https://www.facebook.com/events/2075916069838446"},
+		{Name: "Event 1", Description: "Desc 1", DetailedDescription: "More details for Event 1", Location: "Croatia", Lat: 45.0, Lng: 16.0, Date: "2024-07-01", Category: "Skirmish", FacebookLink: "https://www.facebook.com/events/792766179793560"},
+		{Name: "Event 2", Description: "Desc 2", DetailedDescription: "More details for Event 2", Location: "Croatia", Lat: 46.0, Lng: 17.0, Date: "2024-07-15", Category: "Skirmish", FacebookLink: "https://www.facebook.com/events/2075916069838446"},
 	}
 	_, err = Bun.NewInsert().Model(&events).Exec(context.Background())
 	return err

@@ -5,10 +5,12 @@ import * as L from 'leaflet';
 type EventInput = {
   name: string;
   description: string;
+  detailedDescription: string;
   location: string;
   date: string;
   lat: number | null;
   lng: number | null;
+  category: string;
   facebookLink: string;
   thumbnailFile: File | null;
 };
@@ -28,10 +30,12 @@ const AdminCreateEvent: React.FC = () => {
   const [form, setForm] = useState<EventInput>({
     name: '',
     description: '',
+    detailedDescription: '',
     location: '',
     date: '',
     lat: null,
     lng: null,
+    category: 'Skirmish',
     facebookLink: '',
     thumbnailFile: null,
   });
@@ -52,7 +56,7 @@ const AdminCreateEvent: React.FC = () => {
 
   const previewUrl = useMemo(() => localPreviewUrl ?? null, [localPreviewUrl]);
 
-  const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const key = e.target.name as StringField;
     setForm(prev => ({ ...prev, [key]: e.target.value }));
   };
@@ -116,10 +120,12 @@ const AdminCreateEvent: React.FC = () => {
       const body = new FormData();
       body.set('name', form.name);
       body.set('description', form.description);
+      body.set('detailedDescription', form.detailedDescription);
       body.set('location', form.location);
       body.set('date', form.date);
       body.set('lat', String(form.lat));
       body.set('lng', String(form.lng));
+      body.set('category', form.category);
       body.set('facebookLink', form.facebookLink);
       if (form.thumbnailFile) body.set('thumbnail', form.thumbnailFile);
 
@@ -131,10 +137,12 @@ const AdminCreateEvent: React.FC = () => {
       setForm({
         name: '',
         description: '',
+        detailedDescription: '',
         location: '',
         date: '',
         lat: null,
         lng: null,
+        category: 'Skirmish',
         facebookLink: '',
         thumbnailFile: null,
       });
@@ -149,7 +157,28 @@ const AdminCreateEvent: React.FC = () => {
 
       <form onSubmit={submit} style={{ display: 'grid', gap: 10, maxWidth: 460 }}>
         <input name="name" placeholder="Event Name" value={form.name} onChange={onChange} required />
+
+        <label style={{ display: 'grid', gap: 6 }}>
+          <span>Category</span>
+          <select name="category" value={form.category} onChange={onChange}>
+            <option value="24h">24h</option>
+            <option value="12h">12h</option>
+            <option value="Skirmish">Skirmish</option>
+          </select>
+        </label>
+
         <textarea name="description" placeholder="Description" value={form.description} onChange={onChange} />
+
+        <label style={{ display: 'grid', gap: 6 }}>
+          <span>Detailed description (shown only in details view)</span>
+          <textarea
+            name="detailedDescription"
+            placeholder="More detailed description"
+            value={form.detailedDescription}
+            onChange={onChange}
+          />
+        </label>
+
         <input name="location" placeholder="Town / Address" value={form.location} onChange={onChange} required />
 
         <label style={{ display: 'grid', gap: 6 }}>

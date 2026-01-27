@@ -15,6 +15,21 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var allowedEventCategories = map[string]struct{}{
+	"24h":      {},
+	"12h":      {},
+	"Skirmish": {},
+}
+
+func normalizeCategory(raw string) (string, bool) {
+	cat := strings.TrimSpace(raw)
+	if cat == "" {
+		cat = "Skirmish"
+	}
+	_, ok := allowedEventCategories[cat]
+	return cat, ok
+}
+
 func randomHex(bytesLen int) (string, error) {
 	b := make([]byte, bytesLen)
 	if _, err := rand.Read(b); err != nil {
@@ -45,6 +60,12 @@ func CreateEventHandler(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Name is required"})
 			return
 		}
+
+		category, ok := normalizeCategory(c.PostForm("category"))
+		if !ok {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category"})
+			return
+		}
 		latStr := strings.TrimSpace(c.PostForm("lat"))
 		lngStr := strings.TrimSpace(c.PostForm("lng"))
 		lat, err := strconv.ParseFloat(latStr, 64)
@@ -59,13 +80,15 @@ func CreateEventHandler(c *gin.Context) {
 		}
 
 		event := types.Event{
-			Name:         name,
-			Description:  c.PostForm("description"),
-			Location:     c.PostForm("location"),
-			Date:         c.PostForm("date"),
-			Lat:          lat,
-			Lng:          lng,
-			FacebookLink: c.PostForm("facebookLink"),
+			Name:                name,
+			Description:         c.PostForm("description"),
+			DetailedDescription: c.PostForm("detailedDescription"),
+			Location:            c.PostForm("location"),
+			Date:                c.PostForm("date"),
+			Lat:                 lat,
+			Lng:                 lng,
+			Category:            category,
+			FacebookLink:        c.PostForm("facebookLink"),
 		}
 
 		fileHeader, err := c.FormFile("thumbnail")
@@ -124,6 +147,12 @@ func CreateEventHandler(c *gin.Context) {
 		})
 		return
 	}
+	category, ok := normalizeCategory(event.Category)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category"})
+		return
+	}
+	event.Category = category
 	if err := db.InsertEventToDB(&event); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create event"})
 		return
@@ -140,6 +169,12 @@ func UpdateEventHandler(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Name is required"})
 			return
 		}
+
+		category, ok := normalizeCategory(c.PostForm("category"))
+		if !ok {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category"})
+			return
+		}
 		latStr := strings.TrimSpace(c.PostForm("lat"))
 		lngStr := strings.TrimSpace(c.PostForm("lng"))
 		lat, err := strconv.ParseFloat(latStr, 64)
@@ -154,16 +189,18 @@ func UpdateEventHandler(c *gin.Context) {
 		}
 
 		event := types.Event{
-			Name:         name,
-			Description:  c.PostForm("description"),
-			Location:     c.PostForm("location"),
-			Date:         c.PostForm("date"),
-			Lat:          lat,
-			Lng:          lng,
-			FacebookLink: c.PostForm("facebookLink"),
+			Name:                name,
+			Description:         c.PostForm("description"),
+			DetailedDescription: c.PostForm("detailedDescription"),
+			Location:            c.PostForm("location"),
+			Date:                c.PostForm("date"),
+			Lat:                 lat,
+			Lng:                 lng,
+			Category:            category,
+			FacebookLink:        c.PostForm("facebookLink"),
 		}
 
-		columns := []string{"name", "description", "location", "date", "lat", "lng", "facebook_link"}
+		columns := []string{"name", "description", "detailed_description", "location", "date", "lat", "lng", "category", "facebook_link"}
 
 		fileHeader, err := c.FormFile("thumbnail")
 		if err == nil && fileHeader != nil {
@@ -222,7 +259,13 @@ func UpdateEventHandler(c *gin.Context) {
 		})
 		return
 	}
-	columns := []string{"name", "description", "location", "date", "lat", "lng", "facebook_link"}
+	category, ok := normalizeCategory(event.Category)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category"})
+		return
+	}
+	event.Category = category
+	columns := []string{"name", "description", "detailed_description", "location", "date", "lat", "lng", "category", "facebook_link"}
 	if event.Thumbnail != "" {
 		columns = append(columns, "thumbnail")
 	}

@@ -3,6 +3,34 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import * as L from 'leaflet';
 import axios from 'axios';
 
+import icon24h from '../assets/24h.jpg';
+import icon12h from '../assets/12h.jpg';
+import iconSkirmish from '../assets/Skirmish.webp';
+
+function formatDateDDMMYYYY(value: string) {
+  const d = new Date(value);
+  if (!Number.isFinite(d.getTime())) return value;
+
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = String(d.getFullYear());
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+function normalizeCategory(value: string | undefined) {
+  const v = (value ?? '').trim();
+  if (v === '24h' || v === '12h' || v === 'Skirmish') return v;
+  return 'Skirmish';
+}
+
+function categoryClassSuffix(category: string) {
+  return category === '24h' ? '24h' : category === '12h' ? '12h' : 'skirmish';
+}
+
+function getCategoryIconUrl(category: string) {
+  return category === '24h' ? icon24h : category === '12h' ? icon12h : iconSkirmish;
+}
+
 interface Event {
   id: number;
   name: string;
@@ -12,7 +40,12 @@ interface Event {
   lat: number;
   lng: number;
   thumbnail?: string; 
+  category?: string;
 }
+
+type EventsMapProps = {
+  onOpenEvent?: (id: number) => void;
+};
 
 // Default Leaflet marker fallback
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,9 +56,11 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-const EventsMap: React.FC = () => {
+const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent }) => {
   const [events, setEvents] = useState<Event[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  const [categoryFilter, setCategoryFilter] = useState<string>('All');
 
   useEffect(() => {
     axios.get('/api/events')
@@ -35,51 +70,86 @@ const EventsMap: React.FC = () => {
       });
   }, []);
 
-  // Create Leaflet icon
-  const createIcon = (thumbnail?: string) => {
-    if (!thumbnail) return new L.Icon.Default();
+  const createCategoryIcon = (categoryRaw?: string) => {
+    const category = normalizeCategory(categoryRaw);
+    const suffix = categoryClassSuffix(category);
 
-	// Use a DivIcon so we can style the thumbnail (rounded, shadow, border)
+    const iconUrl = getCategoryIconUrl(category);
+    const bubbleInner = `<img class="eventMarker__img" src="${iconUrl}" alt="${category}" />`;
+
 	return L.divIcon({
-		className: 'eventMarker',
-    html: `<div class="eventMarker__pin"><div class="eventMarker__bubble"><img class="eventMarker__img" src="${thumbnail}" alt="" /></div></div>`,
-    iconSize: [48, 62],
-    iconAnchor: [24, 62],
-    popupAnchor: [0, -56],
+		className: `eventMarker eventMarker--${suffix}`,
+	  html: `<div class="eventMarker__pin"><div class="eventMarker__bubble">${bubbleInner}</div></div>`,
+      iconSize: [48, 62],
+      iconAnchor: [24, 62],
+      popupAnchor: [0, -56],
 	});
   };
 
-  // Preload all images to detect broken URLs
-  const [loadedThumbnails, setLoadedThumbnails] = useState<Record<number, boolean>>({});
-  useEffect(() => {
-    events.forEach(e => {
-      if (!e.thumbnail) return;
-      const img = new Image();
-      img.src = e.thumbnail;
-      img.onload = () => setLoadedThumbnails(prev => ({ ...prev, [e.id]: true }));
-      img.onerror = () => setLoadedThumbnails(prev => ({ ...prev, [e.id]: false }));
-    });
-  }, [events]);
+  const filteredEvents =
+    categoryFilter === 'All'
+      ? events
+      : events.filter(e => (e.category ?? 'Skirmish') === categoryFilter);
 
   return (
-    <div style={{ height: '100%', width: '100%' }}>
+    <div style={{ height: '100%', width: '100%', position: 'relative' }}>
       {error && <div style={{ color: 'red', padding: 8 }}>Error: {error}</div>}
 
-      <MapContainer center={[45.1, 15.2]} zoom={7} style={{ height: '100%', width: '100%' }}>
+      <div
+        style={{
+          position: 'absolute',
+          top: 12,
+          right: 12,
+          zIndex: 1000,
+          background: 'rgba(0,0,0,0.55)',
+          border: '1px solid rgba(255,255,255,0.18)',
+          borderRadius: 10,
+          padding: '10px 12px',
+          backdropFilter: 'blur(6px)',
+        }}
+      >
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 12, opacity: 0.9 }}>Category</span>
+          <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
+            <option value="All">All</option>
+            <option value="24h">24h</option>
+            <option value="12h">12h</option>
+            <option value="Skirmish">Skirmish</option>
+          </select>
+        </label>
+      </div>
+
+      <MapContainer center={[44.7, 16]} zoom={7.5} style={{ height: '100%', width: '100%' }}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {events.map(event => {
-          // If image failed to load, use default icon
-          const icon = loadedThumbnails[event.id] ? createIcon(event.thumbnail) : new L.Icon.Default();
+        {filteredEvents.map(event => {
+          const icon = createCategoryIcon(event.category);
           return (
             <Marker key={event.id} position={[event.lat, event.lng]} icon={icon}>
               <Popup>
                 <div>
-                  <strong>{event.name}</strong>
-                  {event.date && <div>Date: {event.date}</div>}
+                  <button
+                    type="button"
+                    onClick={() => onOpenEvent?.(event.id)}
+                    disabled={!onOpenEvent}
+                    aria-disabled={!onOpenEvent}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      padding: 0,
+                      fontWeight: 800,
+                      color: 'inherit',
+                      textDecoration: 'underline',
+                      cursor: onOpenEvent ? 'pointer' : 'default',
+                    }}
+                  >
+                    {event.name}
+                  </button>
+                  <div>Category: {event.category ?? 'Skirmish'}</div>
+                  {event.date && <div>Date: {formatDateDDMMYYYY(event.date)}</div>}
                   {event.location && <div>{event.location}</div>}
                   {event.description && <div>{event.description}</div>}
                 </div>

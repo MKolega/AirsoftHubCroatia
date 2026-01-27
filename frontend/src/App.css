@@ -112,6 +112,20 @@
   background: rgba(255,255,255,0.04);
 }
 
+.eventCategoryBadge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.92);
+}
+
 .event-thumbnail-icon {
   border-radius: 50%;
   border: 2px solid white;
@@ -120,6 +134,10 @@
 .eventMarker {
   background: transparent;
   border: 0;
+
+  /* Unified (non-category) marker styling */
+  --marker-accent: rgba(0, 0, 0, 0.92);
+  --marker-bg: rgba(0, 0, 0, 0.55);
 }
 
 .eventMarker__pin {
@@ -136,9 +154,9 @@
   width: 18px;
   height: 18px;
   transform: translateX(-50%) rotate(45deg);
-  background: rgba(20, 20, 20, 0.55);
-  border-right: 2px solid rgba(255, 255, 255, 0.9);
-  border-bottom: 2px solid rgba(255, 255, 255, 0.9);
+  background: var(--marker-bg, rgba(20, 20, 20, 0.55));
+  border-right: 2px solid var(--marker-accent, rgba(255, 255, 255, 0.9));
+  border-bottom: 2px solid var(--marker-accent, rgba(255, 255, 255, 0.9));
   box-shadow: 0 10px 18px rgba(0, 0, 0, 0.35);
 }
 
@@ -150,15 +168,29 @@
   height: 48px;
   transform: translateX(-50%);
   border-radius: 999px;
-  background: rgba(20, 20, 20, 0.55);
-  border: 2px solid rgba(255, 255, 255, 0.9);
+  background: var(--marker-bg, rgba(20, 20, 20, 0.55));
+  border: 2px solid var(--marker-accent, rgba(255, 255, 255, 0.9));
   box-sizing: border-box;
   box-shadow:
     0 14px 28px rgba(0, 0, 0, 0.45),
     0 3px 10px rgba(0, 0, 0, 0.35);
   overflow: hidden;
   backdrop-filter: blur(6px);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
+.eventMarker__label {
+  color: rgba(255, 255, 255, 0.96);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  user-select: none;
+}
+
 
 .eventMarker__img {
   display: block;

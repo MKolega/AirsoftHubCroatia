@@ -34,6 +34,7 @@ type Page = 'map' | 'events' | 'create-event' | 'edit-event';
 type Route =
   | { page: 'map' }
   | { page: 'events' }
+  | { page: 'event-detail'; eventId: number }
   | { page: 'create-event' }
   | { page: 'edit-event'; eventId: number };
 
@@ -41,6 +42,8 @@ function getRouteFromPath(pathname: string): Route {
   const editMatch = pathname.match(/^\/events\/(\d+)\/edit/);
   if (editMatch) return { page: 'edit-event', eventId: Number.parseInt(editMatch[1]!, 10) };
   if (pathname.startsWith('/events/create')) return { page: 'create-event' };
+  const detailMatch = pathname.match(/^\/events\/(\d+)\/?$/);
+  if (detailMatch) return { page: 'event-detail', eventId: Number.parseInt(detailMatch[1]!, 10) };
   if (pathname.startsWith('/events')) return { page: 'events' };
   return { page: 'map' };
 }
@@ -62,6 +65,12 @@ function App() {
       to === 'events' ? '/events' : to === 'create-event' ? '/events/create' : to === 'map' ? '/' : '/events';
     window.history.pushState({}, '', path);
     setRoute(getRouteFromPath(path));
+  };
+
+  const navigateEvent = (eventId: number) => {
+    const path = `/events/${eventId}`;
+    window.history.pushState({}, '', path);
+    setRoute({ page: 'event-detail', eventId });
   };
 
   const navigateEdit = (eventId: number) => {
@@ -86,11 +95,21 @@ function App() {
         </aside>
 
         <main className="content">
-          {route.page === 'map' && <EventsMap />}
+          {route.page === 'map' && <EventsMap onOpenEvent={navigateEvent} />}
           {route.page === 'events' && (
             <EventsPage
               onCreateEvent={() => navigate('create-event')}
               onEditEvent={id => navigateEdit(id)}
+              onOpenEvent={id => navigateEvent(id)}
+            />
+          )}
+          {route.page === 'event-detail' && (
+            <EventsPage
+              onCreateEvent={() => navigate('create-event')}
+              onEditEvent={id => navigateEdit(id)}
+              onOpenEvent={id => navigateEvent(id)}
+              openEventId={route.eventId}
+              onCloseEvent={() => navigate('events')}
             />
           )}
           {route.page === 'create-event' && <AdminCreateEvent />}

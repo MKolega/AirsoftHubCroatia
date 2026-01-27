@@ -6,10 +6,12 @@ type EventApi = {
   id: number;
   name: string;
   description?: string;
+  detailed_description?: string;
   location?: string;
   date?: string;
   lat: number;
   lng: number;
+  category?: string;
   facebook_link?: string;
   thumbnail?: string;
 };
@@ -22,10 +24,12 @@ type NominatimResult = {
 type EventForm = {
   name: string;
   description: string;
+  detailedDescription: string;
   location: string;
   date: string;
   lat: number | null;
   lng: number | null;
+  category: string;
   facebookLink: string;
   thumbnailFile: File | null;
   currentThumbnail?: string;
@@ -54,10 +58,12 @@ const EditEvent: React.FC<EditEventProps> = ({ eventId, onDone }) => {
   const [form, setForm] = useState<EventForm>({
     name: '',
     description: '',
+    detailedDescription: '',
     location: '',
     date: '',
     lat: null,
     lng: null,
+    category: 'Skirmish',
     facebookLink: '',
     thumbnailFile: null,
     currentThumbnail: undefined,
@@ -65,6 +71,7 @@ const EditEvent: React.FC<EditEventProps> = ({ eventId, onDone }) => {
 
   const [status, setStatus] = useState<string | null>(null);
   const [loadingGeo, setLoadingGeo] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
   useEffect(() => {
@@ -97,13 +104,18 @@ const EditEvent: React.FC<EditEventProps> = ({ eventId, onDone }) => {
         const found = list.find(e => e?.id === eventId);
         if (!found) throw new Error('Event not found');
 
+        const category =
+          typeof found.category === 'string' && found.category.trim() !== '' ? found.category : 'Skirmish';
+
         setForm({
           name: found.name ?? '',
           description: found.description ?? '',
+          detailedDescription: found.detailed_description ?? '',
           location: found.location ?? '',
           date: found.date ?? '',
           lat: Number.isFinite(found.lat) ? found.lat : null,
           lng: Number.isFinite(found.lng) ? found.lng : null,
+          category,
           facebookLink: found.facebook_link ?? '',
           thumbnailFile: null,
           currentThumbnail: found.thumbnail,
@@ -119,7 +131,7 @@ const EditEvent: React.FC<EditEventProps> = ({ eventId, onDone }) => {
     return () => controller.abort();
   }, [eventId]);
 
-  const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const key = e.target.name as StringField;
     setForm(prev => ({ ...prev, [key]: e.target.value }));
   };
@@ -185,10 +197,12 @@ const EditEvent: React.FC<EditEventProps> = ({ eventId, onDone }) => {
       const body = new FormData();
       body.set('name', form.name);
       body.set('description', form.description);
+      body.set('detailedDescription', form.detailedDescription);
       body.set('location', form.location);
       body.set('date', form.date);
       body.set('lat', String(form.lat));
       body.set('lng', String(form.lng));
+      body.set('category', form.category);
       body.set('facebookLink', form.facebookLink);
       if (form.thumbnailFile) body.set('thumbnail', form.thumbnailFile);
 
@@ -238,6 +252,51 @@ const EditEvent: React.FC<EditEventProps> = ({ eventId, onDone }) => {
     }
   };
 
+  const deleteEvent = async () => {
+    if (deleting) return;
+    setStatus(null);
+
+    const ok = window.confirm('Delete this event? This cannot be undone.');
+    if (!ok) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/events/${eventId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const raw = await res.text().catch(() => '');
+        let message = `HTTP ${res.status}`;
+        try {
+          const parsed: unknown = raw ? JSON.parse(raw) : null;
+          if (parsed && typeof parsed === 'object') {
+            const errMsg =
+              'error' in parsed && typeof (parsed as Record<string, unknown>).error === 'string'
+                ? String((parsed as Record<string, unknown>).error)
+                : '';
+            const details =
+              'details' in parsed && typeof (parsed as Record<string, unknown>).details === 'string'
+                ? String((parsed as Record<string, unknown>).details)
+                : '';
+            if (errMsg) message += `: ${errMsg}`;
+            if (details) message += ` (${details})`;
+          } else if (raw) {
+            message += `: ${raw}`;
+          }
+        } catch {
+          if (raw) message += `: ${raw}`;
+        }
+
+        throw new Error(message);
+      }
+
+      setStatus('🗑️ Event deleted.');
+      if (onDone) onDone();
+    } catch (err) {
+      setStatus(`❌ ${err instanceof Error ? err.message : 'Failed to delete event'}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) return <div className="page">Loading…</div>;
   if (loadError) return <div className="page" style={{ color: '#dc3545' }}>Error: {loadError}</div>;
 
@@ -245,16 +304,54 @@ const EditEvent: React.FC<EditEventProps> = ({ eventId, onDone }) => {
     <div className="page">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
         <h2 style={{ marginTop: 0, marginBottom: 0 }}>Edit Event</h2>
-        {onDone && (
-          <button type="button" onClick={onDone} style={{ whiteSpace: 'nowrap' }}>
-            Back
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            type="button"
+            onClick={deleteEvent}
+            disabled={deleting}
+            aria-disabled={deleting}
+            style={{
+              whiteSpace: 'nowrap',
+              borderColor: 'rgba(220,53,69,0.45)',
+              background: 'rgba(220,53,69,0.12)',
+              color: 'rgba(255,255,255,0.95)',
+            }}
+          >
+            {deleting ? 'Deleting…' : 'Delete'}
           </button>
-        )}
+
+          {onDone && (
+            <button type="button" onClick={onDone} style={{ whiteSpace: 'nowrap' }}>
+              Back
+            </button>
+          )}
+        </div>
       </div>
 
       <form onSubmit={submit} style={{ display: 'grid', gap: 10, maxWidth: 460, marginTop: 12 }}>
         <input name="name" placeholder="Event Name" value={form.name} onChange={onChange} required />
+
+        <label style={{ display: 'grid', gap: 6 }}>
+          <span>Category</span>
+          <select name="category" value={form.category} onChange={onChange}>
+            <option value="24h">24h</option>
+            <option value="12h">12h</option>
+            <option value="Skirmish">Skirmish</option>
+          </select>
+        </label>
+
         <textarea name="description" placeholder="Description" value={form.description} onChange={onChange} />
+
+        <label style={{ display: 'grid', gap: 6 }}>
+          <span>Detailed description (shown only in details view)</span>
+          <textarea
+            name="detailedDescription"
+            placeholder="More detailed description"
+            value={form.detailedDescription}
+            onChange={onChange}
+          />
+        </label>
+
         <input name="location" placeholder="Town / Address" value={form.location} onChange={onChange} required />
 
         <label style={{ display: 'grid', gap: 6 }}>
