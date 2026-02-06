@@ -74,7 +74,7 @@ const FocusEventController: React.FC<FocusControllerProps> = ({
     if (!ev) return;
 
     const currentZoom = map.getZoom();
-    const targetZoom = Math.min(Math.max(currentZoom, 11), 10);
+    const targetZoom = Math.min(Math.max(currentZoom, 10), 11);
     map.flyTo([ev.lat, ev.lng], targetZoom, { animate: true, duration: 0.9 });
 
     const t = window.setTimeout(() => {
@@ -173,6 +173,41 @@ const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent, focusEventId, focusT
             <option value="Skirmish">Skirmish</option>
           </select>
         </label>
+      </div>
+
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 46,
+          right: 12,
+          zIndex: 1000,
+          background: 'rgba(0,0,0,0.55)',
+          border: '1px solid rgba(255,255,255,0.18)',
+          borderRadius: 10,
+          padding: '10px 12px',
+          backdropFilter: 'blur(6px)',
+        }}
+        aria-label="Map legend"
+      >
+        <div style={{ fontSize: 12, opacity: 0.9, marginBottom: 8, fontWeight: 700 }}>Legend</div>
+        <div style={{ display: 'grid', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <img src={icon24h} alt="24h" style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'cover' }} />
+            <span style={{ fontSize: 12, opacity: 0.95 }}>24h</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <img src={icon12h} alt="12h" style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'cover' }} />
+            <span style={{ fontSize: 12, opacity: 0.95 }}>12h</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <img
+              src={iconSkirmish}
+              alt="Skirmish"
+              style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'cover' }}
+            />
+            <span style={{ fontSize: 12, opacity: 0.95 }}>Skirmish</span>
+          </div>
+        </div>
       </div>
 
       <MapContainer center={[44.7, 16]} zoom={7.5} style={{ height: '100%', width: '100%' }}>

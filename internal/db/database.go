@@ -130,6 +130,11 @@ func Init() error {
 	Bun = bun.NewDB(db, pgdialect.New())
 	Bun.AddQueryHook(bundebug.NewQueryHook())
 
+	err = CreateUsersTable()
+	if err != nil {
+		return err
+	}
+
 	err = CreateEventsTable()
 	if err != nil {
 		return err

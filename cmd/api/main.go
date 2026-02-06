@@ -39,6 +39,8 @@ func main() {
 		api.POST("/events", handlers.CreateEventHandler)
 		api.PUT("/events/:id", handlers.UpdateEventHandler)
 		api.DELETE("/events/:id", handlers.DeleteEventHandler)
+		api.POST("/auth/register", handlers.RegisterHandler)
+		api.POST("/auth/login", handlers.LoginHandler)
 	}
 
 	if err := router.Run(cfg.Address); err != nil {

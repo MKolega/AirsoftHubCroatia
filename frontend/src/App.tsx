@@ -4,6 +4,7 @@ import EventsMap from './components/EventsMap';
 import EventsPage from './components/EventsPage'; // new file
 import AdminCreateEvent from './components/CreateEvent';
 import EditEvent from './components/EditEvent';
+import AuthPage from './components/AuthPage';
 
 type EventForSidebar = {
   id: number;
@@ -68,18 +69,20 @@ class ErrorBoundary extends React.Component<React.PropsWithChildren, { error: un
   }
 }
 
-type Page = 'map' | 'events' | 'create-event' | 'edit-event';
+type Page = 'map' | 'events' | 'create-event' | 'edit-event' | 'auth';
 
 type Route =
   | { page: 'map' }
   | { page: 'events' }
   | { page: 'event-detail'; eventId: number }
   | { page: 'create-event' }
-  | { page: 'edit-event'; eventId: number };
+  | { page: 'edit-event'; eventId: number }
+  | { page: 'auth' };
 
 function getRouteFromPath(pathname: string): Route {
   const editMatch = pathname.match(/^\/events\/(\d+)\/edit/);
   if (editMatch) return { page: 'edit-event', eventId: Number.parseInt(editMatch[1]!, 10) };
+  if (pathname.startsWith('/auth')) return { page: 'auth' };
   if (pathname.startsWith('/events/create')) return { page: 'create-event' };
   const detailMatch = pathname.match(/^\/events\/(\d+)\/?$/);
   if (detailMatch) return { page: 'event-detail', eventId: Number.parseInt(detailMatch[1]!, 10) };
@@ -89,6 +92,11 @@ function getRouteFromPath(pathname: string): Route {
 
 function App() {
   const [route, setRoute] = useState<Route>(() => getRouteFromPath(window.location.pathname));
+
+  const [auth, setAuth] = useState<{ token: string | null; email: string | null }>(() => ({
+    token: window.localStorage.getItem('authToken'),
+    email: window.localStorage.getItem('authEmail'),
+  }));
 
   const [mapFocus, setMapFocus] = useState<{ eventId: number; token: number } | null>(null);
 
@@ -139,10 +147,20 @@ function App() {
 
   const navigate = (to: Page) => {
     const path =
-      to === 'events' ? '/events' : to === 'create-event' ? '/events/create' : to === 'map' ? '/' : '/events';
+      to === 'events'
+        ? '/events'
+        : to === 'create-event'
+          ? '/events/create'
+          : to === 'auth'
+            ? '/auth'
+            : to === 'map'
+              ? '/'
+              : '/events';
     window.history.pushState({}, '', path);
     setRoute(getRouteFromPath(path));
   };
+
+  const isSignedIn = Boolean(auth.token);
 
   const navigateEvent = (eventId: number) => {
     const path = `/events/${eventId}`;
@@ -193,6 +211,17 @@ function App() {
                 Create
               </button>
             </nav>
+
+            <div className="topbar__right">
+              <button
+                type="button"
+                className="topbar__btn"
+                onClick={() => navigate('auth')}
+                aria-current={route.page === 'auth' ? 'page' : undefined}
+              >
+                {isSignedIn ? 'Account' : 'Sign in'}
+              </button>
+            </div>
           </div>
         </header>
 
@@ -256,6 +285,20 @@ function App() {
             {route.page === 'create-event' && <AdminCreateEvent />}
             {route.page === 'edit-event' && (
               <EditEvent eventId={route.eventId} onDone={() => navigate('events')} />
+            )}
+            {route.page === 'auth' && (
+              <AuthPage
+                signedIn={isSignedIn}
+                signedInEmail={auth.email}
+                onAuthUpdate={(token, email) => {
+                  if (token) window.localStorage.setItem('authToken', token);
+                  else window.localStorage.removeItem('authToken');
+                  if (email) window.localStorage.setItem('authEmail', email);
+                  else window.localStorage.removeItem('authEmail');
+                  setAuth({ token, email });
+                }}
+                onDone={() => navigate('map')}
+              />
             )}
           </main>
         </div>
