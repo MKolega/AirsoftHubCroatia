@@ -1,6 +1,25 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import * as L from 'leaflet';
+
+const DEFAULT_CENTER: [number, number] = [44.7, 16];
+
+const MapRecenter: React.FC<{ center: [number, number]; zoom: number }> = ({ center, zoom }) => {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, zoom, { animate: true });
+  }, [center, zoom, map]);
+  return null;
+};
+
+const MapClickSetter: React.FC<{ onPick: (lat: number, lng: number) => void }> = ({ onPick }) => {
+  useMapEvents({
+    click(e) {
+      onPick(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+};
 
 type EventInput = {
   name: string;
@@ -112,7 +131,7 @@ const AdminCreateEvent: React.FC = () => {
     setStatus(null);
 
     if (form.lat == null || form.lng == null) {
-      setStatus('❌ Please locate the address first');
+      setStatus('❌ Please set a location on the map');
       return;
     }
 
@@ -150,6 +169,12 @@ const AdminCreateEvent: React.FC = () => {
       setStatus('❌ Failed to save event');
     }
   };
+
+  const mapCenter = useMemo<[number, number]>(
+    () => (form.lat != null && form.lng != null ? [form.lat, form.lng] : DEFAULT_CENTER),
+    [form.lat, form.lng]
+  );
+  const mapZoom = form.lat != null && form.lng != null ? 13 : 7.5;
 
   return (
     <div className="page">
@@ -210,21 +235,21 @@ const AdminCreateEvent: React.FC = () => {
           {loadingGeo ? 'Locating…' : '📍 Locate on Map'}
         </button>
 
-        {form.lat != null && form.lng != null && (
-          <div style={{ height: 220, borderRadius: 8, overflow: 'hidden' }}>
-            <MapContainer
-              center={[form.lat, form.lng]}
-              zoom={13}
-              style={{ height: '100%', width: '100%' }}
-              scrollWheelZoom={false}
-            >
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              <Marker position={[form.lat, form.lng]} />
-            </MapContainer>
+        <div style={{ height: 260, borderRadius: 8, overflow: 'hidden' }}>
+          <div style={{ fontSize: 12, opacity: 0.9, marginBottom: 6 }}>
+            Tip: click on the map to place/move the event marker.
           </div>
-        )}
+          <MapContainer center={mapCenter} zoom={mapZoom} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false}>
+            <MapRecenter center={mapCenter} zoom={mapZoom} />
+            <MapClickSetter
+              onPick={(lat, lng) => {
+                setForm(prev => ({ ...prev, lat, lng }));
+              }}
+            />
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            {form.lat != null && form.lng != null ? <Marker position={[form.lat, form.lng]} /> : null}
+          </MapContainer>
+        </div>
 
         <input name="date" type="date" value={form.date} onChange={onChange} />
         <input name="facebookLink" placeholder="Facebook Event Link" value={form.facebookLink} onChange={onChange} />

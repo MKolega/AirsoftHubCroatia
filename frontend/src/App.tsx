@@ -5,6 +5,45 @@ import EventsPage from './components/EventsPage'; // new file
 import AdminCreateEvent from './components/CreateEvent';
 import EditEvent from './components/EditEvent';
 
+type EventForSidebar = {
+  id: number;
+  name: string;
+  date?: string;
+  location?: string;
+  category?: string;
+};
+
+function formatDateDDMMYYYY(value: string) {
+  const d = new Date(value);
+  if (!Number.isFinite(d.getTime())) return value;
+
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = String(d.getFullYear());
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+function toDateSortKey(value: string | undefined) {
+  if (!value) return Number.POSITIVE_INFINITY;
+  const d = new Date(value);
+  const t = d.getTime();
+  return Number.isFinite(t) ? t : Number.POSITIVE_INFINITY;
+}
+
+function parseEventForSidebar(value: unknown): EventForSidebar | null {
+  if (!value || typeof value !== 'object') return null;
+  const obj = value as Record<string, unknown>;
+
+  const id = obj.id;
+  const name = obj.name;
+  if (typeof id !== 'number' || typeof name !== 'string') return null;
+
+  const date = typeof obj.date === 'string' ? obj.date : undefined;
+  const location = typeof obj.location === 'string' ? obj.location : undefined;
+  const category = typeof obj.category === 'string' ? obj.category : undefined;
+  return { id, name, date, location, category };
+}
+
 class ErrorBoundary extends React.Component<React.PropsWithChildren, { error: unknown }> {
   state = { error: null as unknown };
 
@@ -51,6 +90,11 @@ function getRouteFromPath(pathname: string): Route {
 function App() {
   const [route, setRoute] = useState<Route>(() => getRouteFromPath(window.location.pathname));
 
+  const [mapFocus, setMapFocus] = useState<{ eventId: number; token: number } | null>(null);
+
+  const [sidebarEvents, setSidebarEvents] = useState<EventForSidebar[]>([]);
+  const [sidebarError, setSidebarError] = useState<string | null>(null);
+
   
   useEffect(() => {
     const onPopState = () => {
@@ -59,6 +103,39 @@ function App() {
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetch('/api/events', { signal: controller.signal })
+      .then(async res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data: unknown) => {
+        const list = Array.isArray(data) ? data : [];
+        const next = list
+          .map(parseEventForSidebar)
+          .filter(Boolean) as EventForSidebar[];
+        setSidebarEvents(next);
+      })
+      .catch(err => {
+        if (!controller.signal.aborted) {
+          setSidebarError(err instanceof Error ? err.message : String(err));
+        }
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  const sortedSidebarEvents = React.useMemo(() => {
+    return [...sidebarEvents].sort((a, b) => {
+      const at = toDateSortKey(a.date);
+      const bt = toDateSortKey(b.date);
+      if (at !== bt) return at - bt;
+      return a.name.localeCompare(b.name);
+    });
+  }, [sidebarEvents]);
 
   const navigate = (to: Page) => {
     const path =
@@ -79,44 +156,109 @@ function App() {
     setRoute({ page: 'edit-event', eventId });
   };
 
+  const focusEventOnMap = (eventId: number) => {
+    navigate('map');
+    setMapFocus(prev => ({ eventId, token: (prev?.token ?? 0) + 1 }));
+  };
+
   return (
     <ErrorBoundary>
       <div className="appLayout">
-        <aside className="sidebar">
-          <div className="sidebar__section">
-            <div className="sidebar__title">Navigation</div>
-            <button className="sidebar__btn" onClick={() => navigate('events')}>
-              Events
-            </button>
-            <button className="sidebar__btn" onClick={() => navigate('map')}>
-              Map
-            </button>
+        <header className="topbar">
+          <div className="topbar__inner">
+            <div className="topbar__title">Airsoft Hub Croatia</div>
+            <nav className="topbar__nav" aria-label="Main navigation">
+              <button
+                type="button"
+                className="topbar__btn"
+                onClick={() => navigate('map')}
+                aria-current={route.page === 'map' ? 'page' : undefined}
+              >
+                Map
+              </button>
+              <button
+                type="button"
+                className="topbar__btn"
+                onClick={() => navigate('events')}
+                aria-current={route.page === 'events' || route.page === 'event-detail' ? 'page' : undefined}
+              >
+                Events
+              </button>
+              <button
+                type="button"
+                className="topbar__btn"
+                onClick={() => navigate('create-event')}
+                aria-current={route.page === 'create-event' ? 'page' : undefined}
+              >
+                Create
+              </button>
+            </nav>
           </div>
-        </aside>
+        </header>
 
-        <main className="content">
-          {route.page === 'map' && <EventsMap onOpenEvent={navigateEvent} />}
-          {route.page === 'events' && (
-            <EventsPage
-              onCreateEvent={() => navigate('create-event')}
-              onEditEvent={id => navigateEdit(id)}
-              onOpenEvent={id => navigateEvent(id)}
-            />
-          )}
-          {route.page === 'event-detail' && (
-            <EventsPage
-              onCreateEvent={() => navigate('create-event')}
-              onEditEvent={id => navigateEdit(id)}
-              onOpenEvent={id => navigateEvent(id)}
-              openEventId={route.eventId}
-              onCloseEvent={() => navigate('events')}
-            />
-          )}
-          {route.page === 'create-event' && <AdminCreateEvent />}
-          {route.page === 'edit-event' && (
-            <EditEvent eventId={route.eventId} onDone={() => navigate('events')} />
-          )}
-        </main>
+        <div className="appBody">
+          <aside className="sidebar" aria-label="Upcoming events">
+            <div className="sidebar__section">
+              <div className="sidebar__title">Upcoming events</div>
+              {sidebarError ? (
+                <div className="sidebar__meta">Error: {sidebarError}</div>
+              ) : sortedSidebarEvents.length === 0 ? (
+                <div className="sidebar__meta">No events.</div>
+              ) : (
+                <div className="eventsMiniList">
+                  {sortedSidebarEvents.map(e => (
+                    <button
+                      key={e.id}
+                      type="button"
+                      className="eventsMiniList__item"
+                      onClick={() => focusEventOnMap(e.id)}
+                      aria-label={`Show on map: ${e.name}`}
+                    >
+                      <div className="eventsMiniList__name">{e.name}</div>
+                      <div className="eventsMiniList__tagRow">
+                        <span className="eventCategoryBadge">{(e.category ?? 'Skirmish').trim() || 'Skirmish'}</span>
+                      </div>
+                      <div className="eventsMiniList__meta">
+                        {e.date ? formatDateDDMMYYYY(e.date) : 'No date'}
+                        {e.location ? ` • ${e.location}` : ''}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </aside>
+
+          <main className="content">
+            {route.page === 'map' && (
+              <EventsMap
+                onOpenEvent={navigateEvent}
+                focusEventId={mapFocus?.eventId}
+                focusToken={mapFocus?.token}
+              />
+            )}
+            {route.page === 'events' && (
+              <EventsPage
+                onCreateEvent={() => navigate('create-event')}
+                onEditEvent={id => navigateEdit(id)}
+                onOpenEvent={id => navigateEvent(id)}
+              />
+            )}
+            {route.page === 'event-detail' && (
+              <EventsPage
+                onCreateEvent={() => navigate('create-event')}
+                onEditEvent={id => navigateEdit(id)}
+                onOpenEvent={id => navigateEvent(id)}
+                openEventId={route.eventId}
+                onCloseEvent={() => navigate('events')}
+              />
+            )}
+            {route.page === 'create-event' && <AdminCreateEvent />}
+            {route.page === 'edit-event' && (
+              <EditEvent eventId={route.eventId} onDone={() => navigate('events')} />
+            )}
+          </main>
+        </div>
       </div>
     </ErrorBoundary>
   );

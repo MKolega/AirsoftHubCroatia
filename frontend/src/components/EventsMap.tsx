@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import * as L from 'leaflet';
 import axios from 'axios';
 
@@ -45,6 +45,53 @@ interface Event {
 
 type EventsMapProps = {
   onOpenEvent?: (id: number) => void;
+  focusEventId?: number;
+  focusToken?: number;
+};
+
+type FocusControllerProps = {
+  focusEventId?: number;
+  focusToken?: number;
+  events: Event[];
+  markersRef: React.MutableRefObject<Map<number, L.Marker>>;
+  onEnsureVisible: () => void;
+};
+
+const FocusEventController: React.FC<FocusControllerProps> = ({
+  focusEventId,
+  focusToken,
+  events,
+  markersRef,
+  onEnsureVisible,
+}) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (typeof focusEventId !== 'number' || !Number.isFinite(focusEventId)) return;
+    onEnsureVisible();
+
+    const ev = events.find(e => e.id === focusEventId);
+    if (!ev) return;
+
+    const currentZoom = map.getZoom();
+    const targetZoom = Math.min(Math.max(currentZoom, 11), 10);
+    map.flyTo([ev.lat, ev.lng], targetZoom, { animate: true, duration: 0.9 });
+
+    const t = window.setTimeout(() => {
+      const marker = markersRef.current.get(focusEventId);
+      marker?.openPopup();
+      const size = map.getSize();
+      const yOffset = Math.round(size.y * 0.14);
+      if (Number.isFinite(yOffset) && yOffset !== 0) {
+        map.panBy([0, yOffset], { animate: true });
+      }
+    }, 350);
+
+    return () => window.clearTimeout(t);
+    
+  }, [focusEventId, focusToken, events, map, markersRef, onEnsureVisible]);
+
+  return null;
 };
 
 // Default Leaflet marker fallback
@@ -56,11 +103,13 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent }) => {
+const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent, focusEventId, focusToken }) => {
   const [events, setEvents] = useState<Event[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
+
+  const markersRef = useRef<Map<number, L.Marker>>(new Map());
 
   useEffect(() => {
     axios.get('/api/events')
@@ -90,6 +139,13 @@ const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent }) => {
     categoryFilter === 'All'
       ? events
       : events.filter(e => (e.category ?? 'Skirmish') === categoryFilter);
+
+  const ensureFocusedEventVisible = useMemo(() => {
+    return () => {
+      
+      setCategoryFilter('All');
+    };
+  }, []);
 
   return (
     <div style={{ height: '100%', width: '100%', position: 'relative' }}>
@@ -125,11 +181,27 @@ const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent }) => {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
+        <FocusEventController
+          focusEventId={focusEventId}
+          focusToken={focusToken}
+          events={events}
+          markersRef={markersRef}
+          onEnsureVisible={ensureFocusedEventVisible}
+        />
+
         {filteredEvents.map(event => {
           const icon = createCategoryIcon(event.category);
           return (
-            <Marker key={event.id} position={[event.lat, event.lng]} icon={icon}>
-              <Popup>
+            <Marker
+              key={event.id}
+              position={[event.lat, event.lng]}
+              icon={icon}
+              ref={m => {
+                if (m) markersRef.current.set(event.id, m);
+                else markersRef.current.delete(event.id);
+              }}
+            >
+              <Popup autoPan={false}>
                 <div>
                   <button
                     type="button"
