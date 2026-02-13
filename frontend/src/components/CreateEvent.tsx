@@ -158,7 +158,25 @@ const AdminCreateEvent: React.FC<AdminCreateEventProps> = ({ authToken }) => {
         headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
       });
 
-      if (!res.ok) throw new Error('Failed to create event');
+      if (!res.ok) {
+        const raw = await res.text().catch(() => '');
+        let message = `HTTP ${res.status}`;
+        try {
+          const parsed: unknown = raw ? JSON.parse(raw) : null;
+          if (parsed && typeof parsed === 'object') {
+            const errMsg =
+              'error' in parsed && typeof (parsed as Record<string, unknown>).error === 'string'
+                ? String((parsed as Record<string, unknown>).error)
+                : '';
+            if (errMsg) message = errMsg;
+          } else if (raw) {
+            message = raw;
+          }
+        } catch {
+          if (raw) message = raw;
+        }
+        throw new Error(message);
+      }
 
       setStatus('✅ Event created!');
       setForm({
@@ -173,8 +191,8 @@ const AdminCreateEvent: React.FC<AdminCreateEventProps> = ({ authToken }) => {
         facebookLink: '',
         thumbnailFile: null,
       });
-    } catch {
-      setStatus('❌ Failed to save event');
+    } catch (err) {
+      setStatus(`❌ ${err instanceof Error ? err.message : 'Failed to save event'}`);
     }
   };
 
@@ -186,6 +204,13 @@ const AdminCreateEvent: React.FC<AdminCreateEventProps> = ({ authToken }) => {
 
   return (
     <div className="page">
+      <div className="warningBox" style={{ marginBottom: 12 }}>
+        <strong>All created events will be sent for verification before publishing.</strong>
+        <div style={{ marginTop: 6, opacity: 0.95 }}>
+          Verification process can take up to 24 hours. Users are limited to creating 2 Events per day.
+        </div>
+      </div>
+
       <h2>Create Event</h2>
 
       <form onSubmit={submit} style={{ display: 'grid', gap: 10, maxWidth: 460 }}>

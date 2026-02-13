@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/MKolega/AirsoftHubCroatia/internal/config"
 	"github.com/MKolega/AirsoftHubCroatia/types"
@@ -149,6 +150,7 @@ func Init() error {
 func CreateEventsTable() error {
 	query := `CREATE TABLE IF NOT EXISTS events (
 			id SERIAL PRIMARY KEY,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 			name TEXT NOT NULL,
 			description TEXT,
 			detailed_description TEXT,
@@ -186,10 +188,30 @@ func CreateEventsTable() error {
 	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ADD COLUMN IF NOT EXISTS creator_email TEXT;`); err != nil {
 		return err
 	}
+	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ;`); err != nil {
+		return err
+	}
+	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ALTER COLUMN created_at SET DEFAULT now();`); err != nil {
+		return err
+	}
+	if _, err := Bun.ExecContext(context.Background(), `UPDATE events SET created_at=now() WHERE created_at IS NULL;`); err != nil {
+		return err
+	}
+	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ALTER COLUMN created_at SET NOT NULL;`); err != nil {
+		return err
+	}
 	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ADD COLUMN IF NOT EXISTS thumbnail TEXT;`); err != nil {
 		return err
 	}
 	return nil
+}
+
+func CountEventsByCreatorInRange(creatorEmail string, start time.Time, end time.Time) (int, error) {
+	return Bun.NewSelect().
+		Model((*types.Event)(nil)).
+		Where("creator_email = ?", creatorEmail).
+		Where("created_at >= ? AND created_at < ?", start, end).
+		Count(context.Background())
 }
 
 func GetEventsFromDB() ([]types.Event, error) {

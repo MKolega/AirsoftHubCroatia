@@ -9,11 +9,20 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/MKolega/AirsoftHubCroatia/internal/db"
 	"github.com/MKolega/AirsoftHubCroatia/types"
 	"github.com/gin-gonic/gin"
 )
+
+func dayBounds(t time.Time) (time.Time, time.Time) {
+	y, m, d := t.Date()
+	loc := t.Location()
+	start := time.Date(y, m, d, 0, 0, 0, 0, loc)
+	end := start.AddDate(0, 0, 1)
+	return start, end
+}
 
 var allowedEventCategories = map[string]struct{}{
 	"24h":      {},
@@ -54,6 +63,22 @@ func EventsHandler(c *gin.Context) {
 
 func CreateEventHandler(c *gin.Context) {
 	contentType := c.GetHeader("Content-Type")
+	creatorEmail, ok := emailFromAuthHeader(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Sign in required to create events"})
+		return
+	}
+	start, end := dayBounds(time.Now())
+	count, err := db.CountEventsByCreatorInRange(creatorEmail, start, end)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to validate daily limit"})
+		return
+	}
+	if count >= 2 {
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "Daily limit reached (2 events per day)"})
+		return
+	}
+
 	if strings.Contains(contentType, "multipart/form-data") {
 		name := strings.TrimSpace(c.PostForm("name"))
 		if name == "" {
@@ -83,15 +108,13 @@ func CreateEventHandler(c *gin.Context) {
 			Name:                name,
 			Description:         c.PostForm("description"),
 			DetailedDescription: c.PostForm("detailedDescription"),
+			CreatorEmail:        creatorEmail,
 			Location:            c.PostForm("location"),
 			Date:                c.PostForm("date"),
 			Lat:                 lat,
 			Lng:                 lng,
 			Category:            category,
 			FacebookLink:        c.PostForm("facebookLink"),
-		}
-		if email, ok := emailFromAuthHeader(c); ok {
-			event.CreatorEmail = email
 		}
 
 		fileHeader, err := c.FormFile("thumbnail")
@@ -156,9 +179,7 @@ func CreateEventHandler(c *gin.Context) {
 		return
 	}
 	event.Category = category
-	if email, ok := emailFromAuthHeader(c); ok {
-		event.CreatorEmail = email
-	}
+	event.CreatorEmail = creatorEmail
 	if err := db.InsertEventToDB(&event); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create event"})
 		return
