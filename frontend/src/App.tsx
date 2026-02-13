@@ -263,6 +263,7 @@ function App() {
                 onCreateEvent={isSignedIn ? () => navigate('create-event') : undefined}
                 onEditEvent={id => navigateEdit(id)}
                 onOpenEvent={id => navigateEvent(id)}
+                authToken={auth.token}
               />
             )}
             {route.page === 'event-detail' && (
@@ -272,6 +273,7 @@ function App() {
                 onOpenEvent={id => navigateEvent(id)}
                 openEventId={route.eventId}
                 onCloseEvent={() => navigate('events')}
+                authToken={auth.token}
               />
             )}
             {route.page === 'create-event' && <AdminCreateEvent authToken={auth.token} />}

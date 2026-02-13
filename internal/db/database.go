@@ -136,6 +136,11 @@ func Init() error {
 		return err
 	}
 
+	err = CreateSavedEventsTable()
+	if err != nil {
+		return err
+	}
+
 	err = CreateEventsTable()
 	if err != nil {
 		return err

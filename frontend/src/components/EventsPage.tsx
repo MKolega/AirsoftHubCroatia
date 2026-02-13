@@ -11,6 +11,13 @@ function formatDateDDMMYYYY(value: string) {
   return `${dd}/${mm}/${yyyy}`;
 }
 
+function getApiErrorMessage(value: unknown): string | null {
+  if (!value || typeof value !== 'object') return null;
+  const rec = value as Record<string, unknown>;
+  const err = rec.error;
+  return typeof err === 'string' && err.trim() ? err : null;
+}
+
 interface Event {
   id: number;
   name: string;
@@ -31,6 +38,7 @@ type EventsPageProps = {
   onOpenEvent?: (id: number) => void;
   openEventId?: number;
   onCloseEvent?: () => void;
+  authToken: string | null;
 };
 
 const EventsPage: React.FC<EventsPageProps> = ({
@@ -39,10 +47,13 @@ const EventsPage: React.FC<EventsPageProps> = ({
   onOpenEvent,
   openEventId,
   onCloseEvent,
+  authToken,
 }) => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [savedEventIds, setSavedEventIds] = useState<Set<number>>(() => new Set());
 
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
@@ -65,6 +76,75 @@ const EventsPage: React.FC<EventsPageProps> = ({
 
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    if (!authToken) {
+      setSavedEventIds(new Set());
+      return;
+    }
+
+    const controller = new AbortController();
+
+    fetch('/api/saved-events', {
+      signal: controller.signal,
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${authToken}`,
+      },
+    })
+      .then(async res => {
+        const data = await res.json().catch(() => []);
+        if (!res.ok) {
+          const msg = getApiErrorMessage(data);
+          throw new Error(msg ?? `HTTP ${res.status}`);
+        }
+        const list = Array.isArray(data) ? (data as Array<{ id?: number }>) : [];
+        const next = new Set<number>();
+        for (const item of list) {
+          if (typeof item?.id === 'number') next.add(item.id);
+        }
+        setSavedEventIds(next);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setSavedEventIds(new Set());
+      });
+
+    return () => controller.abort();
+  }, [authToken]);
+
+  const toggleSave = async (eventId: number) => {
+    if (!authToken) {
+      window.alert('Sign in to Save events');
+      return;
+    }
+
+    const isSaved = savedEventIds.has(eventId);
+    const method = isSaved ? 'DELETE' : 'POST';
+    try {
+      const res = await fetch(`/api/events/${eventId}/save`, {
+        method,
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const msg = getApiErrorMessage(data);
+        throw new Error(msg ?? `HTTP ${res.status}`);
+      }
+
+      setSavedEventIds(prev => {
+        const next = new Set(prev);
+        if (isSaved) next.delete(eventId);
+        else next.add(eventId);
+        return next;
+      });
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Failed to save event');
+    }
+  };
 
   if (loading) return <div>Loading…</div>;
   if (error) return <div style={{ color: '#dc3545' }}>Error: {error}</div>;
@@ -131,6 +211,22 @@ const EventsPage: React.FC<EventsPageProps> = ({
               }}
               style={{ cursor: 'pointer' }}
             >
+              <button
+                type="button"
+                className={
+                  savedEventIds.has(e.id)
+                    ? 'eventSaveBtn eventSaveBtn--saved'
+                    : 'eventSaveBtn'
+                }
+                title="Save Event"
+                aria-label="Save Event"
+                onClick={ev => {
+                  ev.stopPropagation();
+                  void toggleSave(e.id);
+                }}
+              >
+                {savedEventIds.has(e.id) ? '★' : '☆'}
+              </button>
               <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                 {e.thumbnail ? (
                   <img

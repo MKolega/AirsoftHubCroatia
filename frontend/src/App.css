@@ -239,10 +239,36 @@
 }
 
 .eventCard {
+  position: relative;
   padding: 12px;
   border-radius: 10px;
   border: 1px solid rgba(255,255,255,0.12);
   background: rgba(255,255,255,0.04);
+}
+
+.eventSaveBtn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.eventSaveBtn--saved {
+  color: rgba(255, 193, 7, 0.95);
+}
+
+.eventSaveBtn:hover {
+  color: rgba(255, 255, 255, 1);
+}
+
+.eventSaveBtn--saved:hover {
+  color: rgba(255, 193, 7, 1);
 }
 
 .eventCategoryBadge {

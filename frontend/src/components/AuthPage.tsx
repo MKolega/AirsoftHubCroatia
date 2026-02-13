@@ -32,6 +32,13 @@ type MyEvent = {
   creator_email?: string;
 };
 
+type SavedEvent = {
+  id: number;
+  name: string;
+  date?: string;
+  location?: string;
+};
+
 function formatDateDDMMYYYY(value: string) {
   const d = new Date(value);
   if (!Number.isFinite(d.getTime())) return value;
@@ -40,6 +47,13 @@ function formatDateDDMMYYYY(value: string) {
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const yyyy = String(d.getFullYear());
   return `${dd}/${mm}/${yyyy}`;
+}
+
+function getApiErrorMessage(value: unknown): string | null {
+  if (!value || typeof value !== 'object') return null;
+  const rec = value as Record<string, unknown>;
+  const err = rec.error;
+  return typeof err === 'string' && err.trim() ? err : null;
 }
 
 const AuthPage: React.FC<AuthPageProps> = ({
@@ -62,6 +76,9 @@ const AuthPage: React.FC<AuthPageProps> = ({
 
   const [myEvents, setMyEvents] = useState<MyEvent[]>([]);
   const [myEventsError, setMyEventsError] = useState<string | null>(null);
+
+  const [savedEvents, setSavedEvents] = useState<SavedEvent[]>([]);
+  const [savedEventsError, setSavedEventsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!signedIn || !authToken) {
@@ -120,6 +137,50 @@ const AuthPage: React.FC<AuthPageProps> = ({
 
     return () => controller.abort();
   }, [signedIn, signedInEmail]);
+
+  useEffect(() => {
+    if (!signedIn || !authToken) {
+      setSavedEvents([]);
+      setSavedEventsError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    setSavedEventsError(null);
+
+    fetch('/api/saved-events', {
+      signal: controller.signal,
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${authToken}`,
+      },
+    })
+      .then(async res => {
+        const data = await res.json().catch(() => []);
+        if (!res.ok) {
+          const msg = getApiErrorMessage(data);
+          throw new Error(msg ?? `HTTP ${res.status}`);
+        }
+        const list = Array.isArray(data) ? (data as SavedEvent[]) : [];
+        setSavedEvents(list);
+      })
+      .catch(err => {
+        if (!controller.signal.aborted) setSavedEventsError(err instanceof Error ? err.message : String(err));
+      });
+
+    return () => controller.abort();
+  }, [signedIn, authToken]);
+
+  const sortedSavedEvents = useMemo(() => {
+    return [...savedEvents].sort((a, b) => {
+      const at = a.date ? new Date(a.date).getTime() : Number.POSITIVE_INFINITY;
+      const bt = b.date ? new Date(b.date).getTime() : Number.POSITIVE_INFINITY;
+      if (Number.isFinite(at) && Number.isFinite(bt) && at !== bt) return at - bt;
+      if (Number.isFinite(at) && !Number.isFinite(bt)) return -1;
+      if (!Number.isFinite(at) && Number.isFinite(bt)) return 1;
+      return String(a.name ?? '').localeCompare(String(b.name ?? ''));
+    });
+  }, [savedEvents]);
 
   const sortedMyEvents = useMemo(() => {
     return [...myEvents].sort((a, b) => {
@@ -234,7 +295,30 @@ const AuthPage: React.FC<AuthPageProps> = ({
 
           <div style={{ display: 'grid', gap: 10 }}>
             <div style={{ fontWeight: 800 }}>Saved Events</div>
-            <div style={{ opacity: 0.85 }}>No saved events yet. Favorites will be added later.</div>
+            {savedEventsError ? (
+              <div style={{ color: '#dc3545' }}>Error: {savedEventsError}</div>
+            ) : sortedSavedEvents.length === 0 ? (
+              <div style={{ opacity: 0.85 }}>No saved events yet.</div>
+            ) : (
+              <div style={{ display: 'grid', gap: 8 }}>
+                {sortedSavedEvents.map(e => (
+                  <button
+                    key={e.id}
+                    type="button"
+                    onClick={() => onOpenEvent?.(e.id)}
+                    disabled={!onOpenEvent}
+                    aria-disabled={!onOpenEvent}
+                    style={{ textAlign: 'left' }}
+                  >
+                    <div style={{ fontWeight: 700 }}>{e.name}</div>
+                    <div style={{ opacity: 0.85, fontSize: 13 }}>
+                      {e.date ? formatDateDDMMYYYY(e.date) : 'No date'}
+                      {e.location ? ` • ${e.location}` : ''}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       ) : (

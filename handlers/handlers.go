@@ -312,3 +312,79 @@ func DeleteEventHandler(c *gin.Context) {
 	}
 	c.Status(http.StatusNoContent)
 }
+
+func SaveEventHandler(c *gin.Context) {
+	email, ok := emailFromAuthHeader(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Sign in required"})
+		return
+	}
+
+	user, err := db.GetUserByEmail(email)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		return
+	}
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event id"})
+		return
+	}
+
+	if err := db.SaveEvent(user.ID, id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save event"})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func UnsaveEventHandler(c *gin.Context) {
+	email, ok := emailFromAuthHeader(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Sign in required"})
+		return
+	}
+
+	user, err := db.GetUserByEmail(email)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		return
+	}
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event id"})
+		return
+	}
+
+	if err := db.UnsaveEvent(user.ID, id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unsave event"})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func SavedEventsHandler(c *gin.Context) {
+	email, ok := emailFromAuthHeader(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Sign in required"})
+		return
+	}
+
+	user, err := db.GetUserByEmail(email)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		return
+	}
+
+	events, err := db.GetSavedEventsForUser(user.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch saved events"})
+		return
+	}
+
+	c.JSON(http.StatusOK, events)
+}
