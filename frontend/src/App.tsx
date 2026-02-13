@@ -202,14 +202,6 @@ function App() {
               >
                 Events
               </button>
-              <button
-                type="button"
-                className="topbar__btn"
-                onClick={() => navigate('create-event')}
-                aria-current={route.page === 'create-event' ? 'page' : undefined}
-              >
-                Create
-              </button>
             </nav>
 
             <div className="topbar__right">
@@ -268,28 +260,30 @@ function App() {
             )}
             {route.page === 'events' && (
               <EventsPage
-                onCreateEvent={() => navigate('create-event')}
+                onCreateEvent={isSignedIn ? () => navigate('create-event') : undefined}
                 onEditEvent={id => navigateEdit(id)}
                 onOpenEvent={id => navigateEvent(id)}
               />
             )}
             {route.page === 'event-detail' && (
               <EventsPage
-                onCreateEvent={() => navigate('create-event')}
+                onCreateEvent={isSignedIn ? () => navigate('create-event') : undefined}
                 onEditEvent={id => navigateEdit(id)}
                 onOpenEvent={id => navigateEvent(id)}
                 openEventId={route.eventId}
                 onCloseEvent={() => navigate('events')}
               />
             )}
-            {route.page === 'create-event' && <AdminCreateEvent />}
+            {route.page === 'create-event' && <AdminCreateEvent authToken={auth.token} />}
             {route.page === 'edit-event' && (
-              <EditEvent eventId={route.eventId} onDone={() => navigate('events')} />
+              <EditEvent eventId={route.eventId} authToken={auth.token} onDone={() => navigate('events')} />
             )}
             {route.page === 'auth' && (
               <AuthPage
                 signedIn={isSignedIn}
                 signedInEmail={auth.email}
+                authToken={auth.token}
+                onOpenEvent={navigateEvent}
                 onAuthUpdate={(token, email) => {
                   if (token) window.localStorage.setItem('authToken', token);
                   else window.localStorage.removeItem('authToken');

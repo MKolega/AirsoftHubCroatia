@@ -13,11 +13,21 @@ func CreateUsersTable() error {
 	query := `CREATE TABLE IF NOT EXISTS users (
 			id SERIAL PRIMARY KEY,
 			email TEXT UNIQUE NOT NULL,
+			username TEXT,
+			airsoft_club TEXT,
 			password_hash TEXT NOT NULL,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		);`
-	_, err := Bun.ExecContext(context.Background(), query)
-	return err
+	if _, err := Bun.ExecContext(context.Background(), query); err != nil {
+		return err
+	}
+	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT;`); err != nil {
+		return err
+	}
+	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE users ADD COLUMN IF NOT EXISTS airsoft_club TEXT;`); err != nil {
+		return err
+	}
+	return nil
 }
 
 func GetUserByEmail(email string) (*types.User, error) {

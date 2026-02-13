@@ -108,15 +108,11 @@ const EventsPage: React.FC<EventsPageProps> = ({
             </select>
           </label>
 
-          <button
-            type="button"
-            onClick={onCreateEvent}
-            disabled={!onCreateEvent}
-            aria-disabled={!onCreateEvent}
-            style={{ whiteSpace: 'nowrap' }}
-          >
-            Create Event
-          </button>
+          {onCreateEvent ? (
+            <button type="button" onClick={onCreateEvent} style={{ whiteSpace: 'nowrap' }}>
+              Add an Event
+            </button>
+          ) : null}
         </div>
       </div>
       <div style={{ display: 'grid', gap: 12 }}>

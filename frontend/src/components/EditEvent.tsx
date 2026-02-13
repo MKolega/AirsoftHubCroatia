@@ -67,10 +67,11 @@ L.Icon.Default.mergeOptions({
 
 type EditEventProps = {
   eventId: number;
+  authToken?: string | null;
   onDone?: () => void;
 };
 
-const EditEvent: React.FC<EditEventProps> = ({ eventId, onDone }) => {
+const EditEvent: React.FC<EditEventProps> = ({ eventId, authToken, onDone }) => {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -225,7 +226,11 @@ const EditEvent: React.FC<EditEventProps> = ({ eventId, onDone }) => {
       body.set('facebookLink', form.facebookLink);
       if (form.thumbnailFile) body.set('thumbnail', form.thumbnailFile);
 
-      const res = await fetch(`/api/events/${eventId}`, { method: 'PUT', body });
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: 'PUT',
+        body,
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+      });
       if (!res.ok) {
         const raw = await res.text().catch(() => '');
         let message = `HTTP ${res.status}`;
@@ -280,7 +285,10 @@ const EditEvent: React.FC<EditEventProps> = ({ eventId, onDone }) => {
 
     setDeleting(true);
     try {
-      const res = await fetch(`/api/events/${eventId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: 'DELETE',
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+      });
       if (!res.ok) {
         const raw = await res.text().catch(() => '');
         let message = `HTTP ${res.status}`;

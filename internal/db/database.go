@@ -152,6 +152,7 @@ func CreateEventsTable() error {
 			name TEXT NOT NULL,
 			description TEXT,
 			detailed_description TEXT,
+			creator_email TEXT,
 			lat DOUBLE PRECISION,
 			lng DOUBLE PRECISION,
 			location TEXT,
@@ -180,6 +181,9 @@ func CreateEventsTable() error {
 		return err
 	}
 	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ADD COLUMN IF NOT EXISTS detailed_description TEXT;`); err != nil {
+		return err
+	}
+	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ADD COLUMN IF NOT EXISTS creator_email TEXT;`); err != nil {
 		return err
 	}
 	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ADD COLUMN IF NOT EXISTS thumbnail TEXT;`); err != nil {

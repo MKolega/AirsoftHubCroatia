@@ -45,7 +45,11 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-const AdminCreateEvent: React.FC = () => {
+type AdminCreateEventProps = {
+  authToken?: string | null;
+};
+
+const AdminCreateEvent: React.FC<AdminCreateEventProps> = ({ authToken }) => {
   const [form, setForm] = useState<EventInput>({
     name: '',
     description: '',
@@ -148,7 +152,11 @@ const AdminCreateEvent: React.FC = () => {
       body.set('facebookLink', form.facebookLink);
       if (form.thumbnailFile) body.set('thumbnail', form.thumbnailFile);
 
-      const res = await fetch('/api/events', { method: 'POST', body });
+      const res = await fetch('/api/events', {
+        method: 'POST',
+        body,
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+      });
 
       if (!res.ok) throw new Error('Failed to create event');
 

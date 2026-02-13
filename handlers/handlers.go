@@ -90,6 +90,9 @@ func CreateEventHandler(c *gin.Context) {
 			Category:            category,
 			FacebookLink:        c.PostForm("facebookLink"),
 		}
+		if email, ok := emailFromAuthHeader(c); ok {
+			event.CreatorEmail = email
+		}
 
 		fileHeader, err := c.FormFile("thumbnail")
 		if err == nil && fileHeader != nil {
@@ -153,6 +156,9 @@ func CreateEventHandler(c *gin.Context) {
 		return
 	}
 	event.Category = category
+	if email, ok := emailFromAuthHeader(c); ok {
+		event.CreatorEmail = email
+	}
 	if err := db.InsertEventToDB(&event); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create event"})
 		return
