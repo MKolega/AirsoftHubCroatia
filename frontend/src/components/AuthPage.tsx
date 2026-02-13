@@ -21,6 +21,7 @@ type MeResponse = {
   email?: string;
   username?: string;
   airsoft_club?: string;
+  is_admin?: boolean;
   error?: string;
 };
 
@@ -71,8 +72,14 @@ const AuthPage: React.FC<AuthPageProps> = ({
   const [airsoftClub, setAirsoftClub] = useState('');
   const [status, setStatus] = useState<string | null>(null);
 
-  const [me, setMe] = useState<{ username: string; airsoftClub: string } | null>(null);
+  const [me, setMe] = useState<{ username: string; airsoftClub: string; isAdmin: boolean } | null>(null);
   const [meError, setMeError] = useState<string | null>(null);
+
+  const [profileUsername, setProfileUsername] = useState('');
+  const [profileClub, setProfileClub] = useState('');
+  const [profileStatus, setProfileStatus] = useState<string | null>(null);
+
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
 
   const [myEvents, setMyEvents] = useState<MyEvent[]>([]);
   const [myEventsError, setMyEventsError] = useState<string | null>(null);
@@ -84,6 +91,10 @@ const AuthPage: React.FC<AuthPageProps> = ({
     if (!signedIn || !authToken) {
       setMe(null);
       setMeError(null);
+
+	  setProfileUsername('');
+	  setProfileClub('');
+	  setProfileStatus(null);
       return;
     }
 
@@ -102,7 +113,9 @@ const AuthPage: React.FC<AuthPageProps> = ({
         if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
         const club = (data.airsoft_club ?? '').trim() || 'No Club/Freelancer';
         const uname = (data.username ?? '').trim();
-        setMe({ username: uname, airsoftClub: club });
+        setMe({ username: uname, airsoftClub: club, isAdmin: Boolean(data.is_admin) });
+		setProfileUsername(uname);
+		setProfileClub(club);
       })
       .catch(err => {
         if (!controller.signal.aborted) setMeError(err instanceof Error ? err.message : String(err));
@@ -182,6 +195,64 @@ const AuthPage: React.FC<AuthPageProps> = ({
     });
   }, [savedEvents]);
 
+  const updateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileStatus(null);
+    if (!authToken) return;
+
+    try {
+      const res = await fetch('/api/auth/me', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          username: profileUsername.trim(),
+          airsoftClub: profileClub.trim(),
+        }),
+      });
+
+      const data: MeResponse = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+
+      const club = (data.airsoft_club ?? '').trim() || 'No Club/Freelancer';
+      const uname = (data.username ?? '').trim();
+      setMe(prev => ({ username: uname, airsoftClub: club, isAdmin: prev?.isAdmin ?? false }));
+      setProfileUsername(uname);
+      setProfileClub(club);
+      setProfileStatus('✅ Profile updated');
+
+      setEditProfileOpen(false);
+    } catch (err) {
+      setProfileStatus(`❌ ${err instanceof Error ? err.message : 'Failed to update profile'}`);
+    }
+  };
+
+  const unsaveEvent = async (eventId: number) => {
+    if (!authToken) return;
+    try {
+      const res = await fetch(`/api/events/${eventId}/save`, {
+        method: 'DELETE',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const msg = getApiErrorMessage(data);
+        throw new Error(msg ?? `HTTP ${res.status}`);
+      }
+      setSavedEvents(prev => prev.filter(ev => ev.id !== eventId));
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Failed to unsave event');
+    }
+  };
+
   const sortedMyEvents = useMemo(() => {
     return [...myEvents].sort((a, b) => {
       const at = a.date ? new Date(a.date).getTime() : Number.POSITIVE_INFINITY;
@@ -252,7 +323,8 @@ const AuthPage: React.FC<AuthPageProps> = ({
               <div style={{ opacity: 0.95 }}>Signed in{signedInEmail ? ` as ${signedInEmail}` : ''}.</div>
               <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
                 <div>
-                  <strong>Username:</strong> {me?.username ? me.username : '—'}
+                  <strong>Username:</strong> {me?.username ? me.username : '—'}{' '}
+                  {me?.isAdmin ? <span className="eventCategoryBadge">Admin</span> : null}
                 </div>
                 <div>
                   <strong>Airsoft Club:</strong> {me?.airsoftClub ? me.airsoftClub : 'No Club/Freelancer'}
@@ -260,9 +332,21 @@ const AuthPage: React.FC<AuthPageProps> = ({
                 {meError ? <div style={{ color: '#dc3545' }}>Profile error: {meError}</div> : null}
               </div>
             </div>
-            <button type="button" onClick={signOut} style={{ whiteSpace: 'nowrap' }}>
-              Sign out
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setProfileStatus(null);
+                  setEditProfileOpen(true);
+                }}
+                style={{ whiteSpace: 'nowrap' }}
+              >
+                Edit profile
+              </button>
+              <button type="button" onClick={signOut} style={{ whiteSpace: 'nowrap' }}>
+                Sign out
+              </button>
+            </div>
           </div>
 
           <div style={{ display: 'grid', gap: 10 }}>
@@ -302,20 +386,42 @@ const AuthPage: React.FC<AuthPageProps> = ({
             ) : (
               <div style={{ display: 'grid', gap: 8 }}>
                 {sortedSavedEvents.map(e => (
-                  <button
+                  <div
                     key={e.id}
-                    type="button"
-                    onClick={() => onOpenEvent?.(e.id)}
-                    disabled={!onOpenEvent}
-                    aria-disabled={!onOpenEvent}
-                    style={{ textAlign: 'left' }}
+                    style={{ display: 'flex', alignItems: 'stretch', gap: 10 }}
                   >
-                    <div style={{ fontWeight: 700 }}>{e.name}</div>
-                    <div style={{ opacity: 0.85, fontSize: 13 }}>
-                      {e.date ? formatDateDDMMYYYY(e.date) : 'No date'}
-                      {e.location ? ` • ${e.location}` : ''}
-                    </div>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => onOpenEvent?.(e.id)}
+                      disabled={!onOpenEvent}
+                      aria-disabled={!onOpenEvent}
+                      style={{ textAlign: 'left', flex: 1 }}
+                    >
+                      <div style={{ fontWeight: 700 }}>{e.name}</div>
+                      <div style={{ opacity: 0.85, fontSize: 13 }}>
+                        {e.date ? formatDateDDMMYYYY(e.date) : 'No date'}
+                        {e.location ? ` • ${e.location}` : ''}
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      title="Unsave Event"
+                      aria-label="Unsave Event"
+                      onClick={() => void unsaveEvent(e.id)}
+                      style={{
+                        border: 0,
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        fontSize: 22,
+                        lineHeight: 1,
+                        padding: '6px 8px',
+                        color: 'rgba(255, 193, 7, 0.95)',
+                      }}
+                    >
+                      ★
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -385,6 +491,72 @@ const AuthPage: React.FC<AuthPageProps> = ({
       )}
 
       {status ? <div style={{ marginTop: 12 }}>{status}</div> : null}
+
+      {signedIn && editProfileOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Edit profile"
+          onMouseDown={e => {
+            if (e.target === e.currentTarget) setEditProfileOpen(false);
+          }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 2000,
+            background: 'rgba(0,0,0,0.6)',
+            display: 'grid',
+            placeItems: 'center',
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              width: 'min(560px, 96vw)',
+              maxHeight: '92vh',
+              overflow: 'auto',
+              borderRadius: 14,
+              border: '1px solid rgba(255,255,255,0.16)',
+              background: 'rgba(20,20,20,0.95)',
+              backdropFilter: 'blur(10px)',
+              padding: 14,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.15 }}>Edit profile</div>
+              <button type="button" onClick={() => setEditProfileOpen(false)}>
+                Close
+              </button>
+            </div>
+
+            <form onSubmit={updateProfile} style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+              <label style={{ display: 'grid', gap: 6 }}>
+                <span style={{ opacity: 0.9 }}>Username</span>
+                <input
+                  value={profileUsername}
+                  onChange={e => setProfileUsername(e.target.value)}
+                  placeholder="Username"
+                  required
+                />
+              </label>
+
+              <label style={{ display: 'grid', gap: 6 }}>
+                <span style={{ opacity: 0.9 }}>Airsoft Club</span>
+                <input
+                  value={profileClub}
+                  onChange={e => setProfileClub(e.target.value)}
+                  placeholder="No Club/Freelancer"
+                />
+              </label>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <button type="submit">Save</button>
+                {profileStatus ? <div style={{ opacity: 0.95 }}>{profileStatus}</div> : null}
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

@@ -45,6 +45,7 @@ func main() {
 		api.POST("/auth/register", handlers.RegisterHandler)
 		api.POST("/auth/login", handlers.LoginHandler)
 		api.GET("/auth/me", handlers.MeHandler)
+		api.PUT("/auth/me", handlers.UpdateMeHandler)
 	}
 
 	if err := router.Run(cfg.Address); err != nil {

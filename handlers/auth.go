@@ -30,6 +30,11 @@ type authResponse struct {
 	Email string `json:"email"`
 }
 
+type updateMeRequest struct {
+	Username    string `json:"username"`
+	AirsoftClub string `json:"airsoftClub"`
+}
+
 func normalizeEmail(raw string) string {
 	return strings.ToLower(strings.TrimSpace(raw))
 }
@@ -120,6 +125,17 @@ func RegisterHandler(c *gin.Context) {
 		club = "No Club/Freelancer"
 	}
 
+	isAdmin := false
+	adminList := strings.TrimSpace(config.GetEnv("ADMIN_EMAILS", ""))
+	if adminList != "" {
+		for _, p := range strings.Split(adminList, ",") {
+			if normalizeEmail(p) == email {
+				isAdmin = true
+				break
+			}
+		}
+	}
+
 	if _, err := db.GetUserByEmail(email); err == nil {
 		c.JSON(http.StatusConflict, gin.H{"error": "Email already in use"})
 		return
@@ -131,7 +147,7 @@ func RegisterHandler(c *gin.Context) {
 		return
 	}
 
-	user := &types.User{Email: email, Username: username, AirsoftClub: club, PasswordHash: string(hash)}
+	user := &types.User{Email: email, Username: username, AirsoftClub: club, IsAdmin: isAdmin, PasswordHash: string(hash)}
 	if err := db.InsertUser(user); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create account"})
 		return
@@ -165,6 +181,59 @@ func MeHandler(c *gin.Context) {
 		"email":        user.Email,
 		"username":     user.Username,
 		"airsoft_club": club,
+		"is_admin":     user.IsAdmin,
+	})
+}
+
+func UpdateMeHandler(c *gin.Context) {
+	email, ok := emailFromAuthHeader(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	user, err := db.GetUserByEmail(email)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	var req updateMeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	username := strings.TrimSpace(req.Username)
+	club := strings.TrimSpace(req.AirsoftClub)
+	if username == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Username is required"})
+		return
+	}
+	if club == "" {
+		club = "No Club/Freelancer"
+	}
+
+	taken, err := db.UsernameTaken(username, user.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to validate username"})
+		return
+	}
+	if taken {
+		c.JSON(http.StatusConflict, gin.H{"error": "Username already taken"})
+		return
+	}
+
+	if err := db.UpdateUserProfile(user.ID, username, club); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"email":        user.Email,
+		"username":     username,
+		"airsoft_club": club,
+		"is_admin":     user.IsAdmin,
 	})
 }
 
