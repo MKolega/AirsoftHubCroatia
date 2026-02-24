@@ -1,0 +1,48 @@
+.createEvent__warning {
+  margin-bottom: 12px;
+}
+
+.createEvent__warningText {
+  margin-top: 6px;
+  opacity: 0.95;
+}
+
+.createEvent__form {
+  display: grid;
+  gap: 10px;
+  max-width: 460px;
+}
+
+.createEvent__field {
+  display: grid;
+  gap: 6px;
+}
+
+.createEvent__preview {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.createEvent__mapWrap {
+  height: 260px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.createEvent__mapTip {
+  font-size: 12px;
+  opacity: 0.9;
+  margin-bottom: 6px;
+}
+
+.createEvent__map {
+  height: 100%;
+  width: 100%;
+}
+
+.createEvent__status {
+  margin-top: 12px;
+}

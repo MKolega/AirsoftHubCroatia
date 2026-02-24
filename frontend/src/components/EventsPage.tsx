@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import EventDetailsModal, { type EventForModal } from './EventDetailsModal';
+import './EventsPage.css';
 
 function formatDateDDMMYYYY(value: string) {
   const d = new Date(value);
@@ -147,7 +148,7 @@ const EventsPage: React.FC<EventsPageProps> = ({
   };
 
   if (loading) return <div>Loading…</div>;
-  if (error) return <div style={{ color: '#dc3545' }}>Error: {error}</div>;
+  if (error) return <div className="eventsPage__error">Error: {error}</div>;
 
   const filteredEvents =
     categoryFilter === 'All'
@@ -174,12 +175,12 @@ const EventsPage: React.FC<EventsPageProps> = ({
 
   return (
     <div className="page">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <h2 style={{ marginTop: 0, marginBottom: 0 }}>Events</h2>
+      <div className="eventsPage__header">
+        <h2 className="eventsPage__title">Events</h2>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ opacity: 0.9 }}>Category</span>
+        <div className="eventsPage__controls">
+          <label className="eventsPage__categoryLabel">
+            <span className="eventsPage__categoryText">Category</span>
             <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
               <option value="All">All</option>
               <option value="24h">24h</option>
@@ -189,27 +190,26 @@ const EventsPage: React.FC<EventsPageProps> = ({
           </label>
 
           {onCreateEvent ? (
-            <button type="button" onClick={onCreateEvent} style={{ whiteSpace: 'nowrap' }}>
+            <button type="button" onClick={onCreateEvent} className="eventsPage__createBtn">
               Add an Event
             </button>
           ) : null}
         </div>
       </div>
-      <div style={{ display: 'grid', gap: 12 }}>
+      <div className="eventsPage__list">
         {filteredEvents.length === 0 ? (
           <div>No events found.</div>
         ) : (
           filteredEvents.map(e => (
             <div
               key={e.id}
-              className="eventCard"
+              className="eventCard eventsPage__card"
               role="button"
               tabIndex={0}
               onClick={() => openEvent(e.id)}
               onKeyDown={ev => {
                 if (ev.key === 'Enter' || ev.key === ' ') openEvent(e.id);
               }}
-              style={{ cursor: 'pointer' }}
             >
               <button
                 type="button"
@@ -227,44 +227,28 @@ const EventsPage: React.FC<EventsPageProps> = ({
               >
                 {savedEventIds.has(e.id) ? '★' : '☆'}
               </button>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <div className="eventsPage__cardInner">
                 {e.thumbnail ? (
                   <img
                     src={e.thumbnail}
                     alt={`${e.name} thumbnail`}
-                    style={{
-                      width: 72,
-                      height: 72,
-                      objectFit: 'cover',
-                      borderRadius: 10,
-                      border: '1px solid rgba(255,255,255,0.12)',
-                      flex: '0 0 auto',
-                    }}
+                    className="eventsPage__thumb"
                     loading="lazy"
                   />
                 ) : (
-                  <div
-                    style={{
-                      width: 72,
-                      height: 72,
-                      borderRadius: 10,
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      background: 'rgba(255,255,255,0.03)',
-                      flex: '0 0 auto',
-                    }}
-                  />
+                  <div className="eventsPage__thumbPlaceholder" />
                 )}
 
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <div style={{ fontWeight: 700 }}>{e.name}</div>
+                <div className="eventsPage__text">
+                  <div className="eventsPage__nameRow">
+                    <div className="eventsPage__name">{e.name}</div>
                     <span className="eventCategoryBadge">{e.category ?? 'Skirmish'}</span>
                   </div>
                   {e.date && <div>Date: {formatDateDDMMYYYY(e.date)}</div>}
                   {e.location && <div>{e.location}</div>}
                   {e.description && <div>{e.description}</div>}
 
-                  <div style={{ marginTop: 10 }}>
+                  <div className="eventsPage__actions">
                     <button
                       type="button"
                       onClick={ev => {

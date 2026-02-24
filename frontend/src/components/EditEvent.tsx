@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import * as L from 'leaflet';
+import './EditEvent.css';
 
 const DEFAULT_CENTER: [number, number] = [44.7, 16];
 
@@ -325,7 +326,7 @@ const EditEvent: React.FC<EditEventProps> = ({ eventId, authToken, onDone }) => 
   };
 
   if (loading) return <div className="page">Loading…</div>;
-  if (loadError) return <div className="page" style={{ color: '#dc3545' }}>Error: {loadError}</div>;
+  if (loadError) return <div className="page editEvent__error">Error: {loadError}</div>;
 
   const mapCenter: [number, number] =
     form.lat != null && form.lng != null ? [form.lat, form.lng] : DEFAULT_CENTER;
@@ -333,36 +334,31 @@ const EditEvent: React.FC<EditEventProps> = ({ eventId, authToken, onDone }) => 
 
   return (
     <div className="page">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <h2 style={{ marginTop: 0, marginBottom: 0 }}>Edit Event</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div className="editEvent__header">
+        <h2 className="editEvent__title">Edit Event</h2>
+        <div className="editEvent__headerActions">
           <button
             type="button"
             onClick={deleteEvent}
             disabled={deleting}
             aria-disabled={deleting}
-            style={{
-              whiteSpace: 'nowrap',
-              borderColor: 'rgba(220,53,69,0.45)',
-              background: 'rgba(220,53,69,0.12)',
-              color: 'rgba(255,255,255,0.95)',
-            }}
+            className="editEvent__deleteBtn"
           >
             {deleting ? 'Deleting…' : 'Delete'}
           </button>
 
           {onDone && (
-            <button type="button" onClick={onDone} style={{ whiteSpace: 'nowrap' }}>
+            <button type="button" onClick={onDone} className="editEvent__backBtn">
               Back
             </button>
           )}
         </div>
       </div>
 
-      <form onSubmit={submit} style={{ display: 'grid', gap: 10, maxWidth: 460, marginTop: 12 }}>
+      <form onSubmit={submit} className="editEvent__form">
         <input name="name" placeholder="Event Name" value={form.name} onChange={onChange} required />
 
-        <label style={{ display: 'grid', gap: 6 }}>
+        <label className="editEvent__field">
           <span>Category</span>
           <select name="category" value={form.category} onChange={onChange}>
             <option value="24h">24h</option>
@@ -373,7 +369,7 @@ const EditEvent: React.FC<EditEventProps> = ({ eventId, authToken, onDone }) => 
 
         <textarea name="description" placeholder="Description" value={form.description} onChange={onChange} />
 
-        <label style={{ display: 'grid', gap: 6 }}>
+        <label className="editEvent__field">
           <span>Detailed description (shown only in details view)</span>
           <textarea
             name="detailedDescription"
@@ -385,13 +381,13 @@ const EditEvent: React.FC<EditEventProps> = ({ eventId, authToken, onDone }) => 
 
         <input name="location" placeholder="Town / Address" value={form.location} onChange={onChange} required />
 
-        <label style={{ display: 'grid', gap: 6 }}>
+        <label className="editEvent__field">
           <span>Thumbnail (optional)</span>
           {previewUrl && (
             <img
               src={previewUrl}
               alt="Thumbnail preview"
-              style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)' }}
+              className="editEvent__preview"
             />
           )}
           <input
@@ -408,11 +404,11 @@ const EditEvent: React.FC<EditEventProps> = ({ eventId, authToken, onDone }) => 
           {loadingGeo ? 'Locating…' : '📍 Locate on Map'}
         </button>
 
-        <div style={{ height: 260, borderRadius: 8, overflow: 'hidden' }}>
-          <div style={{ fontSize: 12, opacity: 0.9, marginBottom: 6 }}>
+        <div className="editEvent__mapWrap">
+          <div className="editEvent__mapTip">
             Tip: click on the map to place/move the event marker.
           </div>
-          <MapContainer center={mapCenter} zoom={mapZoom} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false}>
+          <MapContainer center={mapCenter} zoom={mapZoom} className="editEvent__map" scrollWheelZoom={false}>
             <MapRecenter center={mapCenter} zoom={mapZoom} />
             <MapClickSetter
               onPick={(lat, lng) => {
@@ -430,7 +426,7 @@ const EditEvent: React.FC<EditEventProps> = ({ eventId, authToken, onDone }) => 
         <button type="submit">Save Changes</button>
       </form>
 
-      {status && <div style={{ marginTop: 12 }}>{status}</div>}
+      {status && <div className="editEvent__status">{status}</div>}
     </div>
   );
 };

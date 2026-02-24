@@ -1,0 +1,73 @@
+.editEvent__error {
+  color: #dc3545;
+}
+
+.editEvent__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.editEvent__title {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.editEvent__headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.editEvent__deleteBtn {
+  white-space: nowrap;
+  border-color: rgba(220, 53, 69, 0.45);
+  background: rgba(220, 53, 69, 0.12);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.editEvent__backBtn {
+  white-space: nowrap;
+}
+
+.editEvent__form {
+  display: grid;
+  gap: 10px;
+  max-width: 460px;
+  margin-top: 12px;
+}
+
+.editEvent__field {
+  display: grid;
+  gap: 6px;
+}
+
+.editEvent__preview {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.editEvent__mapWrap {
+  height: 260px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.editEvent__mapTip {
+  font-size: 12px;
+  opacity: 0.9;
+  margin-bottom: 6px;
+}
+
+.editEvent__map {
+  height: 100%;
+  width: 100%;
+}
+
+.editEvent__status {
+  margin-top: 12px;
+}

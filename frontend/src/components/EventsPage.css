@@ -1,0 +1,88 @@
+.eventsPage__error {
+  color: #dc3545;
+}
+
+.eventsPage__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.eventsPage__title {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.eventsPage__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.eventsPage__categoryLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eventsPage__categoryText {
+  opacity: 0.9;
+}
+
+.eventsPage__createBtn {
+  white-space: nowrap;
+}
+
+.eventsPage__list {
+  display: grid;
+  gap: 12px;
+}
+
+.eventsPage__card {
+  cursor: pointer;
+}
+
+.eventsPage__cardInner {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.eventsPage__thumb {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  flex: 0 0 auto;
+}
+
+.eventsPage__thumbPlaceholder {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  flex: 0 0 auto;
+}
+
+.eventsPage__text {
+  min-width: 0;
+  flex: 1;
+}
+
+.eventsPage__nameRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.eventsPage__name {
+  font-weight: 700;
+}
+
+.eventsPage__actions {
+  margin-top: 10px;
+}

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import EventDetailsModal, { type EventForModal } from './EventDetailsModal';
+import './AuthPage.css';
 
 type Mode = 'login' | 'register';
 
@@ -490,14 +491,14 @@ const AuthPage: React.FC<AuthPageProps> = ({
 
   return (
     <div className="page">
-      <h2 style={{ marginTop: 0 }}>Account</h2>
+      <h2 className="authPage__title">Account</h2>
 
       {signedIn ? (
-        <div style={{ display: 'grid', gap: 16, maxWidth: 820 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ opacity: 0.95 }}>Signed in{signedInEmail ? ` as ${signedInEmail}` : ''}.</div>
-              <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
+        <div className="authPage__signedInGrid">
+          <div className="authPage__profileRow">
+            <div className="authPage__profileLeft">
+              <div className="authPage__signedInText">Signed in{signedInEmail ? ` as ${signedInEmail}` : ''}.</div>
+              <div className="authPage__profileGrid">
                 <div>
                   <strong>Username:</strong> {me?.username ? me.username : '—'}{' '}
                   {me?.isAdmin ? <span className="eventCategoryBadge">Admin</span> : null}
@@ -505,34 +506,34 @@ const AuthPage: React.FC<AuthPageProps> = ({
                 <div>
                   <strong>Airsoft Club:</strong> {me?.airsoftClub ? me.airsoftClub : 'No Club/Freelancer'}
                 </div>
-                {meError ? <div style={{ color: '#dc3545' }}>Profile error: {meError}</div> : null}
+                {meError ? <div className="authPage__error">Profile error: {meError}</div> : null}
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <div className="authPage__actions">
               <button
                 type="button"
                 onClick={() => {
                   setProfileStatus(null);
                   setEditProfileOpen(true);
                 }}
-                style={{ whiteSpace: 'nowrap' }}
+                className="authPage__nowrap"
               >
                 Edit profile
               </button>
-              <button type="button" onClick={signOut} style={{ whiteSpace: 'nowrap' }}>
+              <button type="button" onClick={signOut} className="authPage__nowrap">
                 Sign out
               </button>
             </div>
           </div>
 
-          <div style={{ display: 'grid', gap: 10 }}>
-            <div style={{ fontWeight: 800 }}>My Events</div>
+          <div className="authPage__section">
+            <div className="authPage__sectionTitle">My Events</div>
             {myEventsError ? (
-              <div style={{ color: '#dc3545' }}>Error: {myEventsError}</div>
+              <div className="authPage__error">Error: {myEventsError}</div>
             ) : sortedMyEvents.length === 0 ? (
-              <div style={{ opacity: 0.85 }}>No events created yet.</div>
+              <div className="authPage__empty">No events created yet.</div>
             ) : (
-              <div style={{ display: 'grid', gap: 8 }}>
+              <div className="authPage__list">
                 {sortedMyEvents.map(e => (
                   <button
                     key={e.id}
@@ -540,10 +541,10 @@ const AuthPage: React.FC<AuthPageProps> = ({
                     onClick={() => onOpenEvent?.(e.id)}
                     disabled={!onOpenEvent}
                     aria-disabled={!onOpenEvent}
-                    style={{ textAlign: 'left' }}
+                    className="authPage__eventBtn"
                   >
-                    <div style={{ fontWeight: 700 }}>{e.name}</div>
-                    <div style={{ opacity: 0.85, fontSize: 13 }}>
+                    <div className="authPage__eventName">{e.name}</div>
+                    <div className="authPage__eventMeta">
                       {e.date ? formatDateDDMMYYYY(e.date) : 'No date'}
                       {e.location ? ` • ${e.location}` : ''}
                     </div>
@@ -554,36 +555,28 @@ const AuthPage: React.FC<AuthPageProps> = ({
           </div>
 
           {me?.isAdmin ? (
-            <div style={{ display: 'grid', gap: 10 }}>
-              <div style={{ fontWeight: 800 }}>Events Pending Review</div>
+            <div className="authPage__section">
+              <div className="authPage__sectionTitle">Events Pending Review</div>
 
               {reviewEventsError ? (
-                <div style={{ color: '#dc3545' }}>Error: {reviewEventsError}</div>
+                <div className="authPage__error">Error: {reviewEventsError}</div>
               ) : reviewEvents.length === 0 ? (
-                <div style={{ opacity: 0.85 }}>No events pending review.</div>
+                <div className="authPage__empty">No events pending review.</div>
               ) : (
-                <div style={{ display: 'grid', gap: 10 }}>
+                <div className="authPage__reviewList">
                   {reviewEvents.map(e => (
                     <div
                       key={e.id}
-                      className="eventCard"
-                      style={{ display: 'grid', gap: 10 }}
+                      className="eventCard authPage__reviewCard"
                     >
-                      <div style={{ minWidth: 0 }}>
+                      <div className="authPage__minWidth0">
                         <button
                           type="button"
                           onClick={() => setReviewPreviewEvent(e as unknown as EventForModal)}
-                          style={{
-                            textAlign: 'left',
-                            padding: 0,
-                            border: 0,
-                            background: 'transparent',
-                            cursor: 'pointer',
-                            width: '100%',
-                          }}
+                          className="authPage__previewBtn"
                         >
-                          <div style={{ fontWeight: 700 }}>{e.name}</div>
-                          <div style={{ opacity: 0.85, fontSize: 13 }}>
+                          <div className="authPage__eventName">{e.name}</div>
+                          <div className="authPage__eventMeta">
                             {e.date ? formatDateDDMMYYYY(e.date) : 'No date'}
                             {e.location ? ` • ${e.location}` : ''}
                             {e.creator_email ? ` • ${e.creator_email}` : ''}
@@ -591,12 +584,12 @@ const AuthPage: React.FC<AuthPageProps> = ({
                         </button>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <div className="authPage__reviewActions">
                         <input
                           placeholder="Rejection reason (optional)"
                           value={rejectReasons[e.id] ?? ''}
                           onChange={ev => setRejectReasons(prev => ({ ...prev, [e.id]: ev.target.value }))}
-                          style={{ flex: '1 1 260px' }}
+                          className="authPage__reviewReason"
                         />
                         <button type="button" onClick={() => void approveReviewEvent(e.id)}>
                           Approve
@@ -612,28 +605,28 @@ const AuthPage: React.FC<AuthPageProps> = ({
             </div>
           ) : null}
 
-          <div style={{ display: 'grid', gap: 10 }}>
-            <div style={{ fontWeight: 800 }}>Saved Events</div>
+          <div className="authPage__section">
+            <div className="authPage__sectionTitle">Saved Events</div>
             {savedEventsError ? (
-              <div style={{ color: '#dc3545' }}>Error: {savedEventsError}</div>
+              <div className="authPage__error">Error: {savedEventsError}</div>
             ) : sortedSavedEvents.length === 0 ? (
-              <div style={{ opacity: 0.85 }}>No saved events yet.</div>
+              <div className="authPage__empty">No saved events yet.</div>
             ) : (
-              <div style={{ display: 'grid', gap: 8 }}>
+              <div className="authPage__list">
                 {sortedSavedEvents.map(e => (
                   <div
                     key={e.id}
-                    style={{ display: 'flex', alignItems: 'stretch', gap: 10 }}
+                    className="authPage__savedRow"
                   >
                     <button
                       type="button"
                       onClick={() => onOpenEvent?.(e.id)}
                       disabled={!onOpenEvent}
                       aria-disabled={!onOpenEvent}
-                      style={{ textAlign: 'left', flex: 1 }}
+                      className="authPage__savedBtn"
                     >
-                      <div style={{ fontWeight: 700 }}>{e.name}</div>
-                      <div style={{ opacity: 0.85, fontSize: 13 }}>
+                      <div className="authPage__eventName">{e.name}</div>
+                      <div className="authPage__eventMeta">
                         {e.date ? formatDateDDMMYYYY(e.date) : 'No date'}
                         {e.location ? ` • ${e.location}` : ''}
                       </div>
@@ -644,15 +637,7 @@ const AuthPage: React.FC<AuthPageProps> = ({
                       title="Unsave Event"
                       aria-label="Unsave Event"
                       onClick={() => void unsaveEvent(e.id)}
-                      style={{
-                        border: 0,
-                        background: 'transparent',
-                        cursor: 'pointer',
-                        fontSize: 22,
-                        lineHeight: 1,
-                        padding: '6px 8px',
-                        color: 'rgba(255, 193, 7, 0.95)',
-                      }}
+                      className="authPage__unsaveStar"
                     >
                       ★
                     </button>
@@ -662,27 +647,27 @@ const AuthPage: React.FC<AuthPageProps> = ({
             )}
           </div>
 
-          <div style={{ display: 'grid', gap: 10 }}>
-            <div style={{ fontWeight: 800 }}>Submitted Events (Review Status)</div>
+          <div className="authPage__section">
+            <div className="authPage__sectionTitle">Submitted Events (Review Status)</div>
 
             {submittedEventsError ? (
-              <div style={{ color: '#dc3545' }}>Error: {submittedEventsError}</div>
+              <div className="authPage__error">Error: {submittedEventsError}</div>
             ) : sortedSubmittedEvents.length === 0 ? (
-              <div style={{ opacity: 0.85 }}>No submitted events yet.</div>
+              <div className="authPage__empty">No submitted events yet.</div>
             ) : (
-              <div style={{ display: 'grid', gap: 8 }}>
+              <div className="authPage__list">
                 {sortedSubmittedEvents.map(e => (
-                  <div key={e.id} className="eventCard" style={{ display: 'grid', gap: 6 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                  <div key={e.id} className="eventCard authPage__submittedCard">
+                    <div className="authPage__submittedRow">
                       <button
                         type="button"
                         onClick={() => onOpenEvent?.(e.id)}
                         disabled={!onOpenEvent}
                         aria-disabled={!onOpenEvent}
-                        style={{ textAlign: 'left', padding: 0, border: 0, background: 'transparent' }}
+                        className="authPage__inlineBtn"
                       >
-                        <div style={{ fontWeight: 700 }}>{e.name}</div>
-                        <div style={{ opacity: 0.85, fontSize: 13 }}>
+                        <div className="authPage__eventName">{e.name}</div>
+                        <div className="authPage__eventMeta">
                           {e.date ? formatDateDDMMYYYY(e.date) : 'No date'}
                           {e.location ? ` • ${e.location}` : ''}
                         </div>
@@ -694,7 +679,7 @@ const AuthPage: React.FC<AuthPageProps> = ({
                     </div>
 
                     {e.rejection_reason ? (
-                      <div style={{ opacity: 0.9, fontSize: 13 }}>
+                      <div className="authPage__rejection">
                         <strong>Rejection reason:</strong> {e.rejection_reason}
                       </div>
                     ) : null}
@@ -706,12 +691,12 @@ const AuthPage: React.FC<AuthPageProps> = ({
         </div>
       ) : (
         <>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
+          <div className="authPage__modeRow">
             <button
               type="button"
               onClick={() => setMode('login')}
               aria-pressed={mode === 'login'}
-              style={{ opacity: mode === 'login' ? 1 : 0.8 }}
+              className={mode === 'login' ? '' : 'authPage__modeBtn--inactive'}
             >
               Sign in
             </button>
@@ -719,13 +704,13 @@ const AuthPage: React.FC<AuthPageProps> = ({
               type="button"
               onClick={() => setMode('register')}
               aria-pressed={mode === 'register'}
-              style={{ opacity: mode === 'register' ? 1 : 0.8 }}
+              className={mode === 'register' ? '' : 'authPage__modeBtn--inactive'}
             >
               Create account
             </button>
           </div>
 
-          <form onSubmit={submit} style={{ display: 'grid', gap: 10, maxWidth: 420 }}>
+          <form onSubmit={submit} className="authPage__form">
             {mode === 'register' ? (
               <>
                 <input
@@ -767,7 +752,7 @@ const AuthPage: React.FC<AuthPageProps> = ({
         </>
       )}
 
-      {status ? <div style={{ marginTop: 12 }}>{status}</div> : null}
+      {status ? <div className="authPage__status">{status}</div> : null}
 
       {signedIn && editProfileOpen ? (
         <div
@@ -777,38 +762,19 @@ const AuthPage: React.FC<AuthPageProps> = ({
           onMouseDown={e => {
             if (e.target === e.currentTarget) setEditProfileOpen(false);
           }}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 2000,
-            background: 'rgba(0,0,0,0.6)',
-            display: 'grid',
-            placeItems: 'center',
-            padding: 16,
-          }}
+          className="authPage__modalOverlay"
         >
-          <div
-            style={{
-              width: 'min(560px, 96vw)',
-              maxHeight: '92vh',
-              overflow: 'auto',
-              borderRadius: 14,
-              border: '1px solid rgba(255,255,255,0.16)',
-              background: 'rgba(20,20,20,0.95)',
-              backdropFilter: 'blur(10px)',
-              padding: 14,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-              <div style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.15 }}>Edit profile</div>
+          <div className="authPage__modalDialog">
+            <div className="authPage__modalHeader">
+              <div className="authPage__modalTitle">Edit profile</div>
               <button type="button" onClick={() => setEditProfileOpen(false)}>
                 Close
               </button>
             </div>
 
-            <form onSubmit={updateProfile} style={{ display: 'grid', gap: 10, marginTop: 12 }}>
-              <label style={{ display: 'grid', gap: 6 }}>
-                <span style={{ opacity: 0.9 }}>Username</span>
+            <form onSubmit={updateProfile} className="authPage__modalForm">
+              <label className="authPage__field">
+                <span className="authPage__fieldHint">Username</span>
                 <input
                   value={profileUsername}
                   onChange={e => setProfileUsername(e.target.value)}
@@ -817,8 +783,8 @@ const AuthPage: React.FC<AuthPageProps> = ({
                 />
               </label>
 
-              <label style={{ display: 'grid', gap: 6 }}>
-                <span style={{ opacity: 0.9 }}>Airsoft Club</span>
+              <label className="authPage__field">
+                <span className="authPage__fieldHint">Airsoft Club</span>
                 <input
                   value={profileClub}
                   onChange={e => setProfileClub(e.target.value)}
@@ -826,9 +792,9 @@ const AuthPage: React.FC<AuthPageProps> = ({
                 />
               </label>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <div className="authPage__modalActions">
                 <button type="submit">Save</button>
-                {profileStatus ? <div style={{ opacity: 0.95 }}>{profileStatus}</div> : null}
+                {profileStatus ? <div className="authPage__profileStatus">{profileStatus}</div> : null}
               </div>
             </form>
           </div>

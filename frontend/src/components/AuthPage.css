@@ -1,0 +1,237 @@
+.authPage__title {
+  margin-top: 0;
+}
+
+.authPage__signedInGrid {
+  display: grid;
+  gap: 16px;
+  max-width: 820px;
+}
+
+.authPage__profileRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.authPage__profileLeft {
+  min-width: 0;
+}
+
+.authPage__signedInText {
+  opacity: 0.95;
+}
+
+.authPage__profileGrid {
+  margin-top: 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.authPage__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.authPage__nowrap {
+  white-space: nowrap;
+}
+
+.authPage__section {
+  display: grid;
+  gap: 10px;
+}
+
+.authPage__sectionTitle {
+  font-weight: 800;
+}
+
+.authPage__error {
+  color: #dc3545;
+}
+
+.authPage__empty {
+  opacity: 0.85;
+}
+
+.authPage__list {
+  display: grid;
+  gap: 8px;
+}
+
+.authPage__eventBtn {
+  text-align: left;
+}
+
+.authPage__eventName {
+  font-weight: 700;
+}
+
+.authPage__eventMeta {
+  opacity: 0.85;
+  font-size: 13px;
+}
+
+.authPage__reviewList {
+  display: grid;
+  gap: 10px;
+}
+
+.authPage__reviewCard {
+  display: grid;
+  gap: 10px;
+}
+
+.authPage__minWidth0 {
+  min-width: 0;
+}
+
+.authPage__previewBtn {
+  text-align: left;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  width: 100%;
+}
+
+.authPage__reviewActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.authPage__reviewReason {
+  flex: 1 1 260px;
+}
+
+.authPage__savedRow {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.authPage__savedBtn {
+  text-align: left;
+  flex: 1;
+}
+
+.authPage__unsaveStar {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+  padding: 6px 8px;
+  color: rgba(255, 193, 7, 0.95);
+}
+
+.authPage__submittedCard {
+  display: grid;
+  gap: 6px;
+}
+
+.authPage__submittedRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.authPage__inlineBtn {
+  text-align: left;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.authPage__rejection {
+  opacity: 0.9;
+  font-size: 13px;
+}
+
+.authPage__modeRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.authPage__modeBtn--inactive {
+  opacity: 0.8;
+}
+
+.authPage__form {
+  display: grid;
+  gap: 10px;
+  max-width: 420px;
+}
+
+.authPage__status {
+  margin-top: 12px;
+}
+
+.authPage__modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.6);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.authPage__modalDialog {
+  width: min(560px, 96vw);
+  max-height: 92vh;
+  overflow: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(20, 20, 20, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 14px;
+}
+
+.authPage__modalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.authPage__modalTitle {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.authPage__modalForm {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.authPage__field {
+  display: grid;
+  gap: 6px;
+}
+
+.authPage__fieldHint {
+  opacity: 0.9;
+}
+
+.authPage__modalActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.authPage__profileStatus {
+  opacity: 0.95;
+}

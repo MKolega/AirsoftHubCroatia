@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import * as L from 'leaflet';
+import './CreateEvent.css';
 
 const DEFAULT_CENTER: [number, number] = [44.7, 16];
 
@@ -210,19 +211,19 @@ const AdminCreateEvent: React.FC<AdminCreateEventProps> = ({ authToken }) => {
 
   return (
     <div className="page">
-      <div className="warningBox" style={{ marginBottom: 12 }}>
+      <div className="warningBox createEvent__warning">
         <strong>All created events will be sent for verification before publishing.</strong>
-        <div style={{ marginTop: 6, opacity: 0.95 }}>
+        <div className="createEvent__warningText">
           Verification process can take up to 24 hours. Users are limited to creating 2 Events per day.
         </div>
       </div>
 
       <h2>Create Event</h2>
 
-      <form onSubmit={submit} style={{ display: 'grid', gap: 10, maxWidth: 460 }}>
+      <form onSubmit={submit} className="createEvent__form">
         <input name="name" placeholder="Event Name" value={form.name} onChange={onChange} required />
 
-        <label style={{ display: 'grid', gap: 6 }}>
+        <label className="createEvent__field">
           <span>Category</span>
           <select name="category" value={form.category} onChange={onChange}>
             <option value="24h">24h</option>
@@ -233,7 +234,7 @@ const AdminCreateEvent: React.FC<AdminCreateEventProps> = ({ authToken }) => {
 
         <textarea name="description" placeholder="Description" value={form.description} onChange={onChange} />
 
-        <label style={{ display: 'grid', gap: 6 }}>
+        <label className="createEvent__field">
           <span>Detailed description (shown only in details view)</span>
           <textarea
             name="detailedDescription"
@@ -245,19 +246,13 @@ const AdminCreateEvent: React.FC<AdminCreateEventProps> = ({ authToken }) => {
 
         <input name="location" placeholder="Town / Address" value={form.location} onChange={onChange} required />
 
-        <label style={{ display: 'grid', gap: 6 }}>
+        <label className="createEvent__field">
           <span>Thumbnail (optional)</span>
           {previewUrl && (
             <img
               src={previewUrl}
               alt="Thumbnail preview"
-              style={{
-                width: 120,
-                height: 120,
-                objectFit: 'cover',
-                borderRadius: 10,
-                border: '1px solid rgba(255,255,255,0.12)',
-              }}
+              className="createEvent__preview"
             />
           )}
           <input
@@ -274,11 +269,11 @@ const AdminCreateEvent: React.FC<AdminCreateEventProps> = ({ authToken }) => {
           {loadingGeo ? 'Locating…' : '📍 Locate on Map'}
         </button>
 
-        <div style={{ height: 260, borderRadius: 8, overflow: 'hidden' }}>
-          <div style={{ fontSize: 12, opacity: 0.9, marginBottom: 6 }}>
+        <div className="createEvent__mapWrap">
+          <div className="createEvent__mapTip">
             Tip: click on the map to place/move the event marker.
           </div>
-          <MapContainer center={mapCenter} zoom={mapZoom} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false}>
+          <MapContainer center={mapCenter} zoom={mapZoom} className="createEvent__map" scrollWheelZoom={false}>
             <MapRecenter center={mapCenter} zoom={mapZoom} />
             <MapClickSetter
               onPick={(lat, lng) => {
@@ -296,7 +291,7 @@ const AdminCreateEvent: React.FC<AdminCreateEventProps> = ({ authToken }) => {
         <button type="submit">Create Event</button>
       </form>
 
-      {status && <div style={{ marginTop: 12 }}>{status}</div>}
+      {status && <div className="createEvent__status">{status}</div>}
     </div>
   );
 };

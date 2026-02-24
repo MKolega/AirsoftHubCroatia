@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
+import './EventDetailsModal.css';
 
 function formatDateDDMMYYYY(value: string) {
   const d = new Date(value);
@@ -41,32 +42,13 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ event, onClose })
       onMouseDown={e => {
         if (e.target === e.currentTarget) onClose();
       }}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 2000,
-        background: 'rgba(0,0,0,0.6)',
-        display: 'grid',
-        placeItems: 'center',
-        padding: 16,
-      }}
+      className="eventDetailsModal__overlay"
     >
-      <div
-        style={{
-          width: 'min(920px, 96vw)',
-          maxHeight: '92vh',
-          overflow: 'auto',
-          borderRadius: 14,
-          border: '1px solid rgba(255,255,255,0.16)',
-          background: 'rgba(20,20,20,0.95)',
-          backdropFilter: 'blur(10px)',
-          padding: 14,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.15 }}>{event.name}</div>
-            <div style={{ opacity: 0.9, marginTop: 6, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+      <div className="eventDetailsModal__dialog">
+        <div className="eventDetailsModal__header">
+          <div className="eventDetailsModal__headerLeft">
+            <div className="eventDetailsModal__title">{event.name}</div>
+            <div className="eventDetailsModal__meta">
               <span className="eventCategoryBadge">{event.category ?? 'Skirmish'}</span>
               {event.date && <span>Date: {formatDateDDMMYYYY(event.date)}</span>}
               {event.location && <span>{event.location}</span>}
@@ -78,18 +60,10 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ event, onClose })
           </button>
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 14,
-            marginTop: 12,
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ flex: '1 1 360px', minWidth: 0 }}>
-             {event.facebook_link ? (
-              <div style={{ marginTop: 12 }}>
+        <div className="eventDetailsModal__content">
+          <div className="eventDetailsModal__left">
+            {event.facebook_link ? (
+              <div className="eventDetailsModal__block">
                 Event page:{' '}
                 <a href={event.facebook_link} target="_blank" rel="noreferrer">
                   {event.facebook_link}
@@ -97,57 +71,29 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ event, onClose })
               </div>
             ) : null}
             {event.detailed_description ? (
-              <div style={{ marginTop: 12 }}>
-                <div style={{ fontWeight: 800, marginBottom: 6 }}>Description</div>
-                <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{event.detailed_description}</div>
+              <div className="eventDetailsModal__block">
+                <div className="eventDetailsModal__blockTitle">Description</div>
+                <div className="eventDetailsModal__detailsText">{event.detailed_description}</div>
               </div>
             ) : null}
-
-           
           </div>
 
-          <div
-            style={{
-              width: 'clamp(220px, 34vw, 320px)',
-              flex: '0 0 auto',
-              display: 'grid',
-              gap: 12,
-            }}
-          >
-            <div
-              style={{
-                width: '100%',
-                aspectRatio: '1 / 1',
-                borderRadius: 12,
-                overflow: 'hidden',
-                border: '1px solid rgba(255,255,255,0.12)',
-                background: 'rgba(255,255,255,0.04)',
-                display: 'grid',
-                placeItems: 'center',
-              }}
-            >
+          <div className="eventDetailsModal__right">
+            <div className="eventDetailsModal__mediaBox">
               {event.thumbnail ? (
                 <img
                   src={event.thumbnail}
                   alt={`${event.name} thumbnail`}
-                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  className="eventDetailsModal__mediaImg"
                   loading="lazy"
                 />
               ) : (
-                <div style={{ opacity: 0.75, fontSize: 12 }}>No image</div>
+                <div className="eventDetailsModal__noImage">No image</div>
               )}
             </div>
 
-            <div
-              style={{
-                width: '100%',
-                aspectRatio: '1 / 1',
-                borderRadius: 12,
-                overflow: 'hidden',
-                border: '1px solid rgba(255,255,255,0.12)',
-              }}
-            >
-              <MapContainer center={mapCenter} zoom={12} style={{ height: '100%', width: '100%' }}>
+            <div className="eventDetailsModal__mapBox">
+              <MapContainer center={mapCenter} zoom={12} className="eventDetailsModal__map">
                 <TileLayer
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
