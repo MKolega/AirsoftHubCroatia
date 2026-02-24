@@ -48,9 +48,11 @@ L.Icon.Default.mergeOptions({
 
 type AdminCreateEventProps = {
   authToken?: string | null;
+  onDone?: () => void;
+  onNotify?: (type: 'success' | 'error', message: string) => void;
 };
 
-const AdminCreateEvent: React.FC<AdminCreateEventProps> = ({ authToken }) => {
+const AdminCreateEvent: React.FC<AdminCreateEventProps> = ({ authToken, onDone, onNotify }) => {
   const [form, setForm] = useState<EventInput>({
     name: '',
     description: '',
@@ -180,12 +182,9 @@ const AdminCreateEvent: React.FC<AdminCreateEventProps> = ({ authToken }) => {
       }
 
       const created: unknown = await res.json().catch(() => null);
-      const reviewStatus =
-        created && typeof created === 'object' && typeof (created as Record<string, unknown>).status === 'string'
-          ? String((created as Record<string, unknown>).status)
-          : '';
+      void created;
 
-      setStatus(reviewStatus === 'pending' ? '✅ Event submitted for review.' : '✅ Event created!');
+      onNotify?.('success', 'Event submitted');
       setForm({
         name: '',
         description: '',
@@ -198,7 +197,10 @@ const AdminCreateEvent: React.FC<AdminCreateEventProps> = ({ authToken }) => {
         facebookLink: '',
         thumbnailFile: null,
       });
+
+      onDone?.();
     } catch (err) {
+      onNotify?.('error', 'Error submitting event');
       setStatus(`❌ ${err instanceof Error ? err.message : 'Failed to save event'}`);
     }
   };

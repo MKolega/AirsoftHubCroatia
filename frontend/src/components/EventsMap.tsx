@@ -31,6 +31,32 @@ function getCategoryIconUrl(category: string) {
   return category === '24h' ? icon24h : category === '12h' ? icon12h : iconSkirmish;
 }
 
+function parseLocalDateOnly(value: string): Date | null {
+  const m = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) {
+    const yyyy = Number(m[1]);
+    const mm = Number(m[2]);
+    const dd = Number(m[3]);
+    if (Number.isFinite(yyyy) && Number.isFinite(mm) && Number.isFinite(dd)) {
+      return new Date(yyyy, mm - 1, dd);
+    }
+  }
+
+  const d = new Date(value);
+  if (!Number.isFinite(d.getTime())) return null;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function isPastEventDate(value: string | undefined): boolean {
+  if (!value) return false;
+  const eventDay = parseLocalDateOnly(value);
+  if (!eventDay) return false;
+
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return eventDay.getTime() < todayStart.getTime();
+}
+
 interface Event {
   id: number;
   name: string;
@@ -135,10 +161,12 @@ const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent, focusEventId, focusT
 	});
   };
 
+  const upcomingEvents = events.filter(e => !isPastEventDate(e.date));
+
   const filteredEvents =
     categoryFilter === 'All'
-      ? events
-      : events.filter(e => (e.category ?? 'Skirmish') === categoryFilter);
+      ? upcomingEvents
+      : upcomingEvents.filter(e => (e.category ?? 'Skirmish') === categoryFilter);
 
   const ensureFocusedEventVisible = useMemo(() => {
     return () => {
@@ -219,7 +247,7 @@ const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent, focusEventId, focusT
         <FocusEventController
           focusEventId={focusEventId}
           focusToken={focusToken}
-          events={events}
+          events={upcomingEvents}
           markersRef={markersRef}
           onEnsureVisible={ensureFocusedEventVisible}
         />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import EventsMap from './components/EventsMap';
 import EventsPage from './components/EventsPage'; // new file
@@ -29,6 +29,32 @@ function toDateSortKey(value: string | undefined) {
   const d = new Date(value);
   const t = d.getTime();
   return Number.isFinite(t) ? t : Number.POSITIVE_INFINITY;
+}
+
+function parseLocalDateOnly(value: string): Date | null {
+  const m = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) {
+    const yyyy = Number(m[1]);
+    const mm = Number(m[2]);
+    const dd = Number(m[3]);
+    if (Number.isFinite(yyyy) && Number.isFinite(mm) && Number.isFinite(dd)) {
+      return new Date(yyyy, mm - 1, dd);
+    }
+  }
+
+  const d = new Date(value);
+  if (!Number.isFinite(d.getTime())) return null;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function isPastEventDate(value: string | undefined): boolean {
+  if (!value) return false;
+  const eventDay = parseLocalDateOnly(value);
+  if (!eventDay) return false;
+
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return eventDay.getTime() < todayStart.getTime();
 }
 
 function parseEventForSidebar(value: unknown): EventForSidebar | null {
@@ -103,6 +129,53 @@ function App() {
   const [sidebarEvents, setSidebarEvents] = useState<EventForSidebar[]>([]);
   const [sidebarError, setSidebarError] = useState<string | null>(null);
 
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
+  const lastDeniedEditRef = useRef<number | null>(null);
+
+  const [meIsAdmin, setMeIsAdmin] = useState(false);
+  const [meChecked, setMeChecked] = useState(false);
+
+  const showToast = (type: 'success' | 'error', message: string) => {
+    setToast({ type, message });
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 5000);
+  };
+
+  useEffect(() => {
+    if (!auth.token) {
+      queueMicrotask(() => {
+        setMeIsAdmin(false);
+        setMeChecked(true);
+      });
+      return;
+    }
+
+    const controller = new AbortController();
+    queueMicrotask(() => setMeChecked(false));
+
+    fetch('/api/auth/me', {
+      signal: controller.signal,
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${auth.token}`,
+      },
+    })
+      .then(async res => {
+        const data = (await res.json().catch(() => ({}))) as { is_admin?: boolean };
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        setMeIsAdmin(Boolean(data?.is_admin));
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setMeIsAdmin(false);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setMeChecked(true);
+      });
+
+    return () => controller.abort();
+  }, [auth.token]);
+
   
   useEffect(() => {
     const onPopState = () => {
@@ -137,7 +210,8 @@ function App() {
   }, []);
 
   const sortedSidebarEvents = React.useMemo(() => {
-    return [...sidebarEvents].sort((a, b) => {
+    const upcoming = sidebarEvents.filter(e => !isPastEventDate(e.date));
+    return [...upcoming].sort((a, b) => {
       const at = toDateSortKey(a.date);
       const bt = toDateSortKey(b.date);
       if (at !== bt) return at - bt;
@@ -174,6 +248,24 @@ function App() {
     setRoute({ page: 'edit-event', eventId });
   };
 
+  useEffect(() => {
+    if (route.page !== 'edit-event') return;
+    if (!meChecked) return;
+    if (meIsAdmin) return;
+
+    const deniedEventId = route.eventId;
+
+    queueMicrotask(() => {
+      if (lastDeniedEditRef.current !== deniedEventId) {
+        lastDeniedEditRef.current = deniedEventId;
+        showToast('error', 'Admin only');
+      }
+
+      window.history.replaceState({}, '', '/events');
+      setRoute(getRouteFromPath('/events'));
+    });
+  }, [route, meChecked, meIsAdmin]);
+
   const focusEventOnMap = (eventId: number) => {
     navigate('map');
     setMapFocus(prev => ({ eventId, token: (prev?.token ?? 0) + 1 }));
@@ -182,6 +274,15 @@ function App() {
   return (
     <ErrorBoundary>
       <div className="appLayout">
+        {toast ? (
+          <div
+            className={toast.type === 'success' ? 'appToast appToast--success' : 'appToast appToast--error'}
+            role="status"
+            aria-live="polite"
+          >
+            {toast.message}
+          </div>
+        ) : null}
         <header className="topbar">
           <div className="topbar__inner">
             <div className="topbar__title">Airsoft Hub Croatia</div>
@@ -261,7 +362,7 @@ function App() {
             {route.page === 'events' && (
               <EventsPage
                 onCreateEvent={isSignedIn ? () => navigate('create-event') : undefined}
-                onEditEvent={id => navigateEdit(id)}
+                onEditEvent={meIsAdmin ? id => navigateEdit(id) : undefined}
                 onOpenEvent={id => navigateEvent(id)}
                 authToken={auth.token}
               />
@@ -269,15 +370,21 @@ function App() {
             {route.page === 'event-detail' && (
               <EventsPage
                 onCreateEvent={isSignedIn ? () => navigate('create-event') : undefined}
-                onEditEvent={id => navigateEdit(id)}
+                onEditEvent={meIsAdmin ? id => navigateEdit(id) : undefined}
                 onOpenEvent={id => navigateEvent(id)}
                 openEventId={route.eventId}
                 onCloseEvent={() => navigate('events')}
                 authToken={auth.token}
               />
             )}
-            {route.page === 'create-event' && <AdminCreateEvent authToken={auth.token} />}
-            {route.page === 'edit-event' && (
+            {route.page === 'create-event' && (
+              <AdminCreateEvent
+                authToken={auth.token}
+                onDone={() => navigate('events')}
+                onNotify={(type, message) => showToast(type, message)}
+              />
+            )}
+            {route.page === 'edit-event' && meIsAdmin && (
               <EditEvent eventId={route.eventId} authToken={auth.token} onDone={() => navigate('events')} />
             )}
             {route.page === 'auth' && (

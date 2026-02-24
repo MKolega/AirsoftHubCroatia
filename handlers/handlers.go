@@ -294,6 +294,11 @@ func AdminRejectEventHandler(c *gin.Context) {
 }
 
 func UpdateEventHandler(c *gin.Context) {
+	_, ok := requireAdmin(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 	contentType := c.GetHeader("Content-Type")
 	if strings.Contains(contentType, "multipart/form-data") {
@@ -410,6 +415,11 @@ func UpdateEventHandler(c *gin.Context) {
 }
 
 func DeleteEventHandler(c *gin.Context) {
+	_, ok := requireAdmin(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 	err := db.DeleteEventFromDB(id)
 	if err != nil {

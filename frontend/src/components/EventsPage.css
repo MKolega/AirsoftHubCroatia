@@ -34,6 +34,19 @@
   white-space: nowrap;
 }
 
+.eventsPage__section {
+  margin-top: 12px;
+}
+
+.eventsPage__sectionTitle {
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.eventsPage__section--past {
+  margin-top: 18px;
+}
+
 .eventsPage__list {
   display: grid;
   gap: 12px;

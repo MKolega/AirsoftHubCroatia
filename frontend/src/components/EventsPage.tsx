@@ -19,6 +19,32 @@ function getApiErrorMessage(value: unknown): string | null {
   return typeof err === 'string' && err.trim() ? err : null;
 }
 
+function parseLocalDateOnly(value: string): Date | null {
+  const m = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) {
+    const yyyy = Number(m[1]);
+    const mm = Number(m[2]);
+    const dd = Number(m[3]);
+    if (Number.isFinite(yyyy) && Number.isFinite(mm) && Number.isFinite(dd)) {
+      return new Date(yyyy, mm - 1, dd);
+    }
+  }
+
+  const d = new Date(value);
+  if (!Number.isFinite(d.getTime())) return null;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function isPastEventDate(value: string | undefined): boolean {
+  if (!value) return false;
+  const eventDay = parseLocalDateOnly(value);
+  if (!eventDay) return false;
+
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return eventDay.getTime() < todayStart.getTime();
+}
+
 interface Event {
   id: number;
   name: string;
@@ -173,6 +199,75 @@ const EventsPage: React.FC<EventsPageProps> = ({
     if (!onCloseEvent) setSelectedEventId(null);
   };
 
+  const upcomingEvents: Event[] = [];
+  const pastEvents: Event[] = [];
+  for (const e of filteredEvents) {
+    if (isPastEventDate(e.date)) pastEvents.push(e);
+    else upcomingEvents.push(e);
+  }
+
+  const renderEventCard = (e: Event) => (
+    <div
+      key={e.id}
+      className="eventCard eventsPage__card"
+      role="button"
+      tabIndex={0}
+      onClick={() => openEvent(e.id)}
+      onKeyDown={ev => {
+        if (ev.key === 'Enter' || ev.key === ' ') openEvent(e.id);
+      }}
+    >
+      <button
+        type="button"
+        className={savedEventIds.has(e.id) ? 'eventSaveBtn eventSaveBtn--saved' : 'eventSaveBtn'}
+        title="Save Event"
+        aria-label="Save Event"
+        onClick={ev => {
+          ev.stopPropagation();
+          void toggleSave(e.id);
+        }}
+      >
+        {savedEventIds.has(e.id) ? '★' : '☆'}
+      </button>
+      <div className="eventsPage__cardInner">
+        {e.thumbnail ? (
+          <img
+            src={e.thumbnail}
+            alt={`${e.name} thumbnail`}
+            className="eventsPage__thumb"
+            loading="lazy"
+          />
+        ) : (
+          <div className="eventsPage__thumbPlaceholder" />
+        )}
+
+        <div className="eventsPage__text">
+          <div className="eventsPage__nameRow">
+            <div className="eventsPage__name">{e.name}</div>
+            <span className="eventCategoryBadge">{e.category ?? 'Skirmish'}</span>
+          </div>
+          {e.date && <div>Date: {formatDateDDMMYYYY(e.date)}</div>}
+          {e.location && <div>{e.location}</div>}
+          {e.description && <div>{e.description}</div>}
+
+          {onEditEvent ? (
+            <div className="eventsPage__actions">
+              <button
+                type="button"
+                onClick={ev => {
+                  ev.stopPropagation();
+                  onEditEvent(e.id);
+                }}
+              >
+                Modify
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="page">
       <div className="eventsPage__header">
@@ -196,76 +291,23 @@ const EventsPage: React.FC<EventsPageProps> = ({
           ) : null}
         </div>
       </div>
-      <div className="eventsPage__list">
-        {filteredEvents.length === 0 ? (
-          <div>No events found.</div>
-        ) : (
-          filteredEvents.map(e => (
-            <div
-              key={e.id}
-              className="eventCard eventsPage__card"
-              role="button"
-              tabIndex={0}
-              onClick={() => openEvent(e.id)}
-              onKeyDown={ev => {
-                if (ev.key === 'Enter' || ev.key === ' ') openEvent(e.id);
-              }}
-            >
-              <button
-                type="button"
-                className={
-                  savedEventIds.has(e.id)
-                    ? 'eventSaveBtn eventSaveBtn--saved'
-                    : 'eventSaveBtn'
-                }
-                title="Save Event"
-                aria-label="Save Event"
-                onClick={ev => {
-                  ev.stopPropagation();
-                  void toggleSave(e.id);
-                }}
-              >
-                {savedEventIds.has(e.id) ? '★' : '☆'}
-              </button>
-              <div className="eventsPage__cardInner">
-                {e.thumbnail ? (
-                  <img
-                    src={e.thumbnail}
-                    alt={`${e.name} thumbnail`}
-                    className="eventsPage__thumb"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="eventsPage__thumbPlaceholder" />
-                )}
 
-                <div className="eventsPage__text">
-                  <div className="eventsPage__nameRow">
-                    <div className="eventsPage__name">{e.name}</div>
-                    <span className="eventCategoryBadge">{e.category ?? 'Skirmish'}</span>
-                  </div>
-                  {e.date && <div>Date: {formatDateDDMMYYYY(e.date)}</div>}
-                  {e.location && <div>{e.location}</div>}
-                  {e.description && <div>{e.description}</div>}
+      <div className="eventsPage__section">
+        <div className="eventsPage__sectionTitle">Upcoming Events</div>
+        <div className="eventsPage__list">
+          {upcomingEvents.length === 0 ? (
+            <div>No upcoming events found.</div>
+          ) : (
+            upcomingEvents.map(renderEventCard)
+          )}
+        </div>
+      </div>
 
-                  <div className="eventsPage__actions">
-                    <button
-                      type="button"
-                      onClick={ev => {
-                        ev.stopPropagation();
-                        onEditEvent?.(e.id);
-                      }}
-                      disabled={!onEditEvent}
-                      aria-disabled={!onEditEvent}
-                    >
-                      Modify
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))
-        )}
+      <div className="eventsPage__section eventsPage__section--past">
+        <div className="eventsPage__sectionTitle">Past Events</div>
+        <div className="eventsPage__list">
+          {pastEvents.length === 0 ? <div>No past events.</div> : pastEvents.map(renderEventCard)}
+        </div>
       </div>
 
       {selectedEvent ? <EventDetailsModal event={selectedEvent} onClose={closeEvent} /> : null}
