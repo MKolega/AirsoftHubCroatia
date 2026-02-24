@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import EventDetailsModal, { type EventForModal } from './EventDetailsModal';
 
 type Mode = 'login' | 'register';
 
@@ -33,11 +34,35 @@ type MyEvent = {
   creator_email?: string;
 };
 
+type ReviewEvent = {
+  id: number;
+  name: string;
+  date?: string;
+  location?: string;
+  creator_email?: string;
+  description?: string;
+  detailed_description?: string;
+  thumbnail?: string;
+  category?: string;
+  facebook_link?: string;
+  lat: number;
+  lng: number;
+};
+
 type SavedEvent = {
   id: number;
   name: string;
   date?: string;
   location?: string;
+};
+
+type SubmittedEvent = {
+  id: number;
+  name: string;
+  date?: string;
+  location?: string;
+  status?: string;
+  rejection_reason?: string;
 };
 
 function formatDateDDMMYYYY(value: string) {
@@ -84,8 +109,16 @@ const AuthPage: React.FC<AuthPageProps> = ({
   const [myEvents, setMyEvents] = useState<MyEvent[]>([]);
   const [myEventsError, setMyEventsError] = useState<string | null>(null);
 
+  const [reviewEvents, setReviewEvents] = useState<ReviewEvent[]>([]);
+  const [reviewEventsError, setReviewEventsError] = useState<string | null>(null);
+  const [rejectReasons, setRejectReasons] = useState<Record<number, string>>({});
+  const [reviewPreviewEvent, setReviewPreviewEvent] = useState<EventForModal | null>(null);
+
   const [savedEvents, setSavedEvents] = useState<SavedEvent[]>([]);
   const [savedEventsError, setSavedEventsError] = useState<string | null>(null);
+
+  const [submittedEvents, setSubmittedEvents] = useState<SubmittedEvent[]>([]);
+  const [submittedEventsError, setSubmittedEventsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!signedIn || !authToken) {
@@ -153,6 +186,58 @@ const AuthPage: React.FC<AuthPageProps> = ({
 
   useEffect(() => {
     if (!signedIn || !authToken) {
+      setSubmittedEvents([]);
+      setSubmittedEventsError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    setSubmittedEventsError(null);
+
+    fetch('/api/my-events', {
+      signal: controller.signal,
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${authToken}`,
+      },
+    })
+      .then(async res => {
+        const data = await res.json().catch(() => []);
+        if (!res.ok) {
+          const msg = getApiErrorMessage(data);
+          throw new Error(msg ?? `HTTP ${res.status}`);
+        }
+        const list = Array.isArray(data) ? (data as SubmittedEvent[]) : [];
+        setSubmittedEvents(list);
+      })
+      .catch(err => {
+        if (!controller.signal.aborted) setSubmittedEventsError(err instanceof Error ? err.message : String(err));
+      });
+
+    return () => controller.abort();
+  }, [signedIn, authToken]);
+
+  const sortedSubmittedEvents = useMemo(() => {
+    return [...submittedEvents].sort((a, b) => {
+      const at = a.date ? new Date(a.date).getTime() : Number.POSITIVE_INFINITY;
+      const bt = b.date ? new Date(b.date).getTime() : Number.POSITIVE_INFINITY;
+      if (Number.isFinite(at) && Number.isFinite(bt) && at !== bt) return at - bt;
+      if (Number.isFinite(at) && !Number.isFinite(bt)) return -1;
+      if (!Number.isFinite(at) && Number.isFinite(bt)) return 1;
+      return String(a.name ?? '').localeCompare(String(b.name ?? ''));
+    });
+  }, [submittedEvents]);
+
+  const statusLabel = (raw?: string) => {
+    const s = (raw ?? '').trim().toLowerCase();
+    if (s === 'approved') return 'Approved';
+    if (s === 'rejected') return 'Rejected';
+    if (s === 'pending') return 'Pending review';
+    return raw?.trim() ? raw.trim() : '—';
+  };
+
+  useEffect(() => {
+    if (!signedIn || !authToken) {
       setSavedEvents([]);
       setSavedEventsError(null);
       return;
@@ -183,6 +268,97 @@ const AuthPage: React.FC<AuthPageProps> = ({
 
     return () => controller.abort();
   }, [signedIn, authToken]);
+
+  useEffect(() => {
+    if (!signedIn || !authToken || !me?.isAdmin) {
+      setReviewEvents([]);
+      setReviewEventsError(null);
+      setRejectReasons({});
+      return;
+    }
+
+    const controller = new AbortController();
+    setReviewEventsError(null);
+
+    fetch('/api/admin/review-events', {
+      signal: controller.signal,
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${authToken}`,
+      },
+    })
+      .then(async res => {
+        const data = await res.json().catch(() => []);
+        if (!res.ok) {
+          const msg = getApiErrorMessage(data);
+          throw new Error(msg ?? `HTTP ${res.status}`);
+        }
+        const list = Array.isArray(data) ? (data as ReviewEvent[]) : [];
+        setReviewEvents(list);
+      })
+      .catch(err => {
+        if (!controller.signal.aborted) setReviewEventsError(err instanceof Error ? err.message : String(err));
+      });
+
+    return () => controller.abort();
+  }, [signedIn, authToken, me?.isAdmin]);
+
+  const approveReviewEvent = async (eventId: number) => {
+    if (!authToken) return;
+    try {
+      const res = await fetch(`/api/admin/review-events/${eventId}/approve`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const msg = getApiErrorMessage(data);
+        throw new Error(msg ?? `HTTP ${res.status}`);
+      }
+      setReviewEvents(prev => prev.filter(e => e.id !== eventId));
+      setReviewPreviewEvent(prev => (prev?.id === eventId ? null : prev));
+      setRejectReasons(prev => {
+        const next = { ...prev };
+        delete next[eventId];
+        return next;
+      });
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Failed to approve event');
+    }
+  };
+
+  const rejectReviewEvent = async (eventId: number) => {
+    if (!authToken) return;
+    const reason = (rejectReasons[eventId] ?? '').trim();
+    try {
+      const res = await fetch(`/api/admin/review-events/${eventId}/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ reason }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const msg = getApiErrorMessage(data);
+        throw new Error(msg ?? `HTTP ${res.status}`);
+      }
+      setReviewEvents(prev => prev.filter(e => e.id !== eventId));
+      setReviewPreviewEvent(prev => (prev?.id === eventId ? null : prev));
+      setRejectReasons(prev => {
+        const next = { ...prev };
+        delete next[eventId];
+        return next;
+      });
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Failed to reject event');
+    }
+  };
 
   const sortedSavedEvents = useMemo(() => {
     return [...savedEvents].sort((a, b) => {
@@ -377,6 +553,65 @@ const AuthPage: React.FC<AuthPageProps> = ({
             )}
           </div>
 
+          {me?.isAdmin ? (
+            <div style={{ display: 'grid', gap: 10 }}>
+              <div style={{ fontWeight: 800 }}>Events Pending Review</div>
+
+              {reviewEventsError ? (
+                <div style={{ color: '#dc3545' }}>Error: {reviewEventsError}</div>
+              ) : reviewEvents.length === 0 ? (
+                <div style={{ opacity: 0.85 }}>No events pending review.</div>
+              ) : (
+                <div style={{ display: 'grid', gap: 10 }}>
+                  {reviewEvents.map(e => (
+                    <div
+                      key={e.id}
+                      className="eventCard"
+                      style={{ display: 'grid', gap: 10 }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <button
+                          type="button"
+                          onClick={() => setReviewPreviewEvent(e as unknown as EventForModal)}
+                          style={{
+                            textAlign: 'left',
+                            padding: 0,
+                            border: 0,
+                            background: 'transparent',
+                            cursor: 'pointer',
+                            width: '100%',
+                          }}
+                        >
+                          <div style={{ fontWeight: 700 }}>{e.name}</div>
+                          <div style={{ opacity: 0.85, fontSize: 13 }}>
+                            {e.date ? formatDateDDMMYYYY(e.date) : 'No date'}
+                            {e.location ? ` • ${e.location}` : ''}
+                            {e.creator_email ? ` • ${e.creator_email}` : ''}
+                          </div>
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                        <input
+                          placeholder="Rejection reason (optional)"
+                          value={rejectReasons[e.id] ?? ''}
+                          onChange={ev => setRejectReasons(prev => ({ ...prev, [e.id]: ev.target.value }))}
+                          style={{ flex: '1 1 260px' }}
+                        />
+                        <button type="button" onClick={() => void approveReviewEvent(e.id)}>
+                          Approve
+                        </button>
+                        <button type="button" onClick={() => void rejectReviewEvent(e.id)}>
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : null}
+
           <div style={{ display: 'grid', gap: 10 }}>
             <div style={{ fontWeight: 800 }}>Saved Events</div>
             {savedEventsError ? (
@@ -421,6 +656,48 @@ const AuthPage: React.FC<AuthPageProps> = ({
                     >
                       ★
                     </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gap: 10 }}>
+            <div style={{ fontWeight: 800 }}>Submitted Events (Review Status)</div>
+
+            {submittedEventsError ? (
+              <div style={{ color: '#dc3545' }}>Error: {submittedEventsError}</div>
+            ) : sortedSubmittedEvents.length === 0 ? (
+              <div style={{ opacity: 0.85 }}>No submitted events yet.</div>
+            ) : (
+              <div style={{ display: 'grid', gap: 8 }}>
+                {sortedSubmittedEvents.map(e => (
+                  <div key={e.id} className="eventCard" style={{ display: 'grid', gap: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                      <button
+                        type="button"
+                        onClick={() => onOpenEvent?.(e.id)}
+                        disabled={!onOpenEvent}
+                        aria-disabled={!onOpenEvent}
+                        style={{ textAlign: 'left', padding: 0, border: 0, background: 'transparent' }}
+                      >
+                        <div style={{ fontWeight: 700 }}>{e.name}</div>
+                        <div style={{ opacity: 0.85, fontSize: 13 }}>
+                          {e.date ? formatDateDDMMYYYY(e.date) : 'No date'}
+                          {e.location ? ` • ${e.location}` : ''}
+                        </div>
+                      </button>
+
+                      <div className="eventCategoryBadge" title="Review status">
+                        {statusLabel(e.status)}
+                      </div>
+                    </div>
+
+                    {e.rejection_reason ? (
+                      <div style={{ opacity: 0.9, fontSize: 13 }}>
+                        <strong>Rejection reason:</strong> {e.rejection_reason}
+                      </div>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -556,6 +833,10 @@ const AuthPage: React.FC<AuthPageProps> = ({
             </form>
           </div>
         </div>
+      ) : null}
+
+      {reviewPreviewEvent ? (
+        <EventDetailsModal event={reviewPreviewEvent} onClose={() => setReviewPreviewEvent(null)} />
       ) : null}
     </div>
   );

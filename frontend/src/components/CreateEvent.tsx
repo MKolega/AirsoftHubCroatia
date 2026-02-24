@@ -178,7 +178,13 @@ const AdminCreateEvent: React.FC<AdminCreateEventProps> = ({ authToken }) => {
         throw new Error(message);
       }
 
-      setStatus('✅ Event created!');
+      const created: unknown = await res.json().catch(() => null);
+      const reviewStatus =
+        created && typeof created === 'object' && typeof (created as Record<string, unknown>).status === 'string'
+          ? String((created as Record<string, unknown>).status)
+          : '';
+
+      setStatus(reviewStatus === 'pending' ? '✅ Event submitted for review.' : '✅ Event created!');
       setForm({
         name: '',
         description: '',

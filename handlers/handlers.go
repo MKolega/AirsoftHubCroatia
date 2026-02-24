@@ -61,12 +61,37 @@ func EventsHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, events)
 }
 
+func MyEventsHandler(c *gin.Context) {
+	email, ok := emailFromAuthHeader(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Sign in required"})
+		return
+	}
+
+	events, err := db.GetEventsByCreatorEmailAllStatuses(email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch your events"})
+		return
+	}
+
+	c.JSON(http.StatusOK, events)
+}
+
 func CreateEventHandler(c *gin.Context) {
 	contentType := c.GetHeader("Content-Type")
 	creatorEmail, ok := emailFromAuthHeader(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Sign in required to create events"})
 		return
+	}
+	user, err := db.GetUserByEmail(creatorEmail)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		return
+	}
+	status := "pending"
+	if user.IsAdmin {
+		status = "approved"
 	}
 	start, end := dayBounds(time.Now())
 	count, err := db.CountEventsByCreatorInRange(creatorEmail, start, end)
@@ -105,6 +130,7 @@ func CreateEventHandler(c *gin.Context) {
 		}
 
 		event := types.Event{
+			Status:              status,
 			Name:                name,
 			Description:         c.PostForm("description"),
 			DetailedDescription: c.PostForm("detailedDescription"),
@@ -180,11 +206,91 @@ func CreateEventHandler(c *gin.Context) {
 	}
 	event.Category = category
 	event.CreatorEmail = creatorEmail
+	event.Status = status
 	if err := db.InsertEventToDB(&event); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create event"})
 		return
 	}
 	c.JSON(http.StatusCreated, event)
+}
+
+func requireAdmin(c *gin.Context) (string, bool) {
+	email, ok := emailFromAuthHeader(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return "", false
+	}
+	user, err := db.GetUserByEmail(email)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		return "", false
+	}
+	if !user.IsAdmin {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Admin only"})
+		return "", false
+	}
+	return email, true
+}
+
+func AdminPendingReviewEventsHandler(c *gin.Context) {
+	_, ok := requireAdmin(c)
+	if !ok {
+		return
+	}
+
+	events, err := db.GetPendingEventsFromDB()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch pending events"})
+		return
+	}
+	c.JSON(http.StatusOK, events)
+}
+
+func AdminApproveEventHandler(c *gin.Context) {
+	adminEmail, ok := requireAdmin(c)
+	if !ok {
+		return
+	}
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event id"})
+		return
+	}
+
+	if err := db.ReviewEvent(id, "approved", adminEmail, nil); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to approve event"})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+type adminRejectRequest struct {
+	Reason string `json:"reason"`
+}
+
+func AdminRejectEventHandler(c *gin.Context) {
+	adminEmail, ok := requireAdmin(c)
+	if !ok {
+		return
+	}
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event id"})
+		return
+	}
+
+	var req adminRejectRequest
+	_ = c.ShouldBindJSON(&req)
+
+	if err := db.ReviewEvent(id, "rejected", adminEmail, &req.Reason); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reject event"})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }
 
 func UpdateEventHandler(c *gin.Context) {

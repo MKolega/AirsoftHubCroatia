@@ -5,6 +5,10 @@ import "time"
 type Event struct {
 	ID                  int       `bun:"id,pk,autoincrement" json:"id"`
 	CreatedAt           time.Time `bun:"created_at,notnull" json:"created_at,omitempty"`
+	Status              string    `bun:"status,notnull" json:"status,omitempty"`
+	RejectionReason     string    `bun:"rejection_reason,nullzero" json:"rejection_reason,omitempty"`
+	ReviewedAt          time.Time `bun:"reviewed_at,nullzero" json:"reviewed_at,omitempty"`
+	ReviewedByEmail     string    `bun:"reviewed_by_email,nullzero" json:"reviewed_by_email,omitempty"`
 	Name                string    `bun:"name,notnull" json:"name"`
 	Date                string    `bun:"date" json:"date"`
 	Description         string    `bun:"description" json:"description"`

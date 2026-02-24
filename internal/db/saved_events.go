@@ -68,6 +68,7 @@ func GetSavedEventsForUser(userID int) ([]types.Event, error) {
 	err = Bun.NewSelect().
 		Model(&events).
 		Where("id IN (?)", bun.In(ids)).
+		Where("status = ?", "approved").
 		Order("date").
 		Scan(context.Background())
 	if err != nil {

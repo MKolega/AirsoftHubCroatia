@@ -159,6 +159,10 @@ func CreateEventsTable() error {
 	query := `CREATE TABLE IF NOT EXISTS events (
 			id SERIAL PRIMARY KEY,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			status TEXT NOT NULL DEFAULT 'approved',
+			rejection_reason TEXT,
+			reviewed_at TIMESTAMPTZ,
+			reviewed_by_email TEXT,
 			name TEXT NOT NULL,
 			description TEXT,
 			detailed_description TEXT,
@@ -211,6 +215,27 @@ func CreateEventsTable() error {
 	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ADD COLUMN IF NOT EXISTS thumbnail TEXT;`); err != nil {
 		return err
 	}
+	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ADD COLUMN IF NOT EXISTS status TEXT;`); err != nil {
+		return err
+	}
+	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ALTER COLUMN status SET DEFAULT 'approved';`); err != nil {
+		return err
+	}
+	if _, err := Bun.ExecContext(context.Background(), `UPDATE events SET status='approved' WHERE status IS NULL OR status='';`); err != nil {
+		return err
+	}
+	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ALTER COLUMN status SET NOT NULL;`); err != nil {
+		return err
+	}
+	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ADD COLUMN IF NOT EXISTS rejection_reason TEXT;`); err != nil {
+		return err
+	}
+	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ;`); err != nil {
+		return err
+	}
+	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE events ADD COLUMN IF NOT EXISTS reviewed_by_email TEXT;`); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -224,11 +249,63 @@ func CountEventsByCreatorInRange(creatorEmail string, start time.Time, end time.
 
 func GetEventsFromDB() ([]types.Event, error) {
 	var events []types.Event
-	err := Bun.NewSelect().Model(&events).Order("date").Scan(context.Background())
+	err := Bun.NewSelect().Model(&events).Where("status = ?", "approved").Order("date").Scan(context.Background())
 	if err != nil {
 		return nil, err
 	}
 	return events, nil
+}
+
+func GetPendingEventsFromDB() ([]types.Event, error) {
+	var events []types.Event
+	err := Bun.NewSelect().Model(&events).Where("status = ?", "pending").Order("created_at").Scan(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return events, nil
+}
+
+func GetEventsByCreatorEmailAllStatuses(creatorEmail string) ([]types.Event, error) {
+	var events []types.Event
+	err := Bun.NewSelect().
+		Model(&events).
+		Where("creator_email = ?", strings.TrimSpace(creatorEmail)).
+		Order("created_at DESC").
+		Scan(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return events, nil
+}
+
+func ReviewEvent(eventID int, status string, reviewedByEmail string, rejectionReason *string) error {
+	st := strings.TrimSpace(status)
+	if st == "" {
+		return fmt.Errorf("status is required")
+	}
+	if st != "pending" && st != "approved" && st != "rejected" {
+		return fmt.Errorf("invalid status")
+	}
+
+	var reason any
+	if rejectionReason != nil {
+		r := strings.TrimSpace(*rejectionReason)
+		if r != "" {
+			reason = r
+		}
+	}
+
+	adminEmail := strings.TrimSpace(reviewedByEmail)
+
+	_, err := Bun.NewUpdate().
+		Model((*types.Event)(nil)).
+		Set("status = ?", st).
+		Set("rejection_reason = ?", reason).
+		Set("reviewed_at = now()").
+		Set("reviewed_by_email = ?", adminEmail).
+		Where("id = ?", eventID).
+		Exec(context.Background())
+	return err
 }
 
 func SeedEventsTable() error {
@@ -241,8 +318,8 @@ func SeedEventsTable() error {
 		return nil
 	}
 	events := []types.Event{
-		{Name: "Event 1", Description: "Desc 1", DetailedDescription: "More details for Event 1", Location: "Croatia", Lat: 45.0, Lng: 16.0, Date: "2024-07-01", Category: "Skirmish", FacebookLink: "https://www.facebook.com/events/792766179793560"},
-		{Name: "Event 2", Description: "Desc 2", DetailedDescription: "More details for Event 2", Location: "Croatia", Lat: 46.0, Lng: 17.0, Date: "2024-07-15", Category: "Skirmish", FacebookLink: "https://www.facebook.com/events/2075916069838446"},
+		{Status: "approved", Name: "Event 1", Description: "Desc 1", DetailedDescription: "More details for Event 1", Location: "Croatia", Lat: 45.0, Lng: 16.0, Date: "2024-07-01", Category: "Skirmish", FacebookLink: "https://www.facebook.com/events/792766179793560"},
+		{Status: "approved", Name: "Event 2", Description: "Desc 2", DetailedDescription: "More details for Event 2", Location: "Croatia", Lat: 46.0, Lng: 17.0, Date: "2024-07-15", Category: "Skirmish", FacebookLink: "https://www.facebook.com/events/2075916069838446"},
 	}
 	_, err = Bun.NewInsert().Model(&events).Exec(context.Background())
 	return err

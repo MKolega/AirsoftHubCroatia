@@ -36,6 +36,7 @@ func main() {
 	api := router.Group("/api")
 	{
 		api.GET("/events", handlers.EventsHandler)
+		api.GET("/my-events", handlers.MyEventsHandler)
 		api.POST("/events", handlers.CreateEventHandler)
 		api.PUT("/events/:id", handlers.UpdateEventHandler)
 		api.DELETE("/events/:id", handlers.DeleteEventHandler)
@@ -46,6 +47,9 @@ func main() {
 		api.POST("/auth/login", handlers.LoginHandler)
 		api.GET("/auth/me", handlers.MeHandler)
 		api.PUT("/auth/me", handlers.UpdateMeHandler)
+		api.GET("/admin/review-events", handlers.AdminPendingReviewEventsHandler)
+		api.POST("/admin/review-events/:id/approve", handlers.AdminApproveEventHandler)
+		api.POST("/admin/review-events/:id/reject", handlers.AdminRejectEventHandler)
 	}
 
 	if err := router.Run(cfg.Address); err != nil {
