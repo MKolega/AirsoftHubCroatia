@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/MKolega/AirsoftHubCroatia/internal/config"
@@ -13,46 +16,75 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type authRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-type registerRequest struct {
-	Email       string `json:"email"`
-	Password    string `json:"password"`
-	Username    string `json:"username"`
-	AirsoftClub string `json:"airsoftClub"`
-}
-
-type authResponse struct {
-	Token string `json:"token"`
-	Email string `json:"email"`
-}
-
-type updateMeRequest struct {
-	Username    string `json:"username"`
-	AirsoftClub string `json:"airsoftClub"`
-}
-
 func normalizeEmail(raw string) string {
 	return strings.ToLower(strings.TrimSpace(raw))
 }
 
-func jwtSecret() []byte {
-	secret := config.GetEnv("AUTH_JWT_SECRET", "dev-secret-change-me")
-	return []byte(secret)
+type authClaims struct {
+	Email string `json:"email"`
+	jwt.RegisteredClaims
+}
+
+type jwtSettings struct {
+	secret   []byte
+	ttl      time.Duration
+	issuer   string
+	audience string
+}
+
+var (
+	jwtSettingsOnce sync.Once
+	jwtSettingsVal  jwtSettings
+	jwtSettingsErr  error
+)
+
+func getJWTSettings() (jwtSettings, error) {
+	jwtSettingsOnce.Do(func() {
+		secret := strings.TrimSpace(config.GetEnv("AUTH_JWT_SECRET", ""))
+		if secret == "" {
+			jwtSettingsErr = errors.New("AUTH_JWT_SECRET is required")
+			return
+		}
+
+		ttlMinutes := strings.TrimSpace(config.GetEnv("AUTH_JWT_TTL_MINUTES", "120"))
+		mins, err := strconv.Atoi(ttlMinutes)
+		if err != nil || mins <= 0 {
+			jwtSettingsErr = errors.New("AUTH_JWT_TTL_MINUTES must be a positive integer")
+			return
+		}
+
+		jwtSettingsVal = jwtSettings{
+			secret:   []byte(secret),
+			ttl:      time.Duration(mins) * time.Minute,
+			issuer:   strings.TrimSpace(config.GetEnv("AUTH_JWT_ISSUER", "")),
+			audience: strings.TrimSpace(config.GetEnv("AUTH_JWT_AUDIENCE", "")),
+		}
+	})
+	return jwtSettingsVal, jwtSettingsErr
 }
 
 func issueToken(email string) (string, error) {
-	claims := jwt.MapClaims{
-		"sub":   email,
-		"email": email,
-		"iat":   time.Now().Unix(),
-		"exp":   time.Now().Add(30 * 24 * time.Hour).Unix(),
+	s, err := getJWTSettings()
+	if err != nil {
+		return "", err
 	}
+
+	now := time.Now()
+	claims := authClaims{
+		Email: email,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   email,
+			Issuer:    s.issuer,
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(s.ttl)),
+		},
+	}
+	if s.audience != "" {
+		claims.Audience = jwt.ClaimStrings{s.audience}
+	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtSecret())
+	return token.SignedString(s.secret)
 }
 
 func emailFromAuthHeader(c *gin.Context) (string, bool) {
@@ -69,37 +101,45 @@ func emailFromAuthHeader(c *gin.Context) (string, bool) {
 		return "", false
 	}
 
-	parsed, err := jwt.Parse(tok, func(token *jwt.Token) (interface{}, error) {
-		if token.Method != jwt.SigningMethodHS256 {
-			return nil, jwt.ErrTokenSignatureInvalid
-		}
-		return jwtSecret(), nil
-	})
+	s, err := getJWTSettings()
+	if err != nil {
+		return "", false
+	}
+
+	claims := new(authClaims)
+	options := []jwt.ParserOption{
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+		jwt.WithExpirationRequired(),
+	}
+	if s.issuer != "" {
+		options = append(options, jwt.WithIssuer(s.issuer))
+	}
+	if s.audience != "" {
+		options = append(options, jwt.WithAudience(s.audience))
+	}
+
+	parsed, err := jwt.ParseWithClaims(tok, claims, func(token *jwt.Token) (interface{}, error) {
+		return s.secret, nil
+	}, options...)
 	if err != nil || parsed == nil || !parsed.Valid {
 		return "", false
 	}
 
-	claims, ok := parsed.Claims.(jwt.MapClaims)
-	if !ok {
-		return "", false
+	email := normalizeEmail(claims.Email)
+	if email != "" {
+		return email, true
 	}
-	if email, ok := claims["email"].(string); ok {
-		email = normalizeEmail(email)
-		if email != "" {
-			return email, true
-		}
+
+	sub := normalizeEmail(claims.Subject)
+	if sub != "" {
+		return sub, true
 	}
-	if sub, ok := claims["sub"].(string); ok {
-		sub = normalizeEmail(sub)
-		if sub != "" {
-			return sub, true
-		}
-	}
+
 	return "", false
 }
 
 func RegisterHandler(c *gin.Context) {
-	var req registerRequest
+	var req types.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
@@ -159,7 +199,7 @@ func RegisterHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, authResponse{Token: tok, Email: email})
+	c.JSON(http.StatusCreated, types.AuthResponse{Token: tok, Email: email})
 }
 
 func MeHandler(c *gin.Context) {
@@ -198,7 +238,7 @@ func UpdateMeHandler(c *gin.Context) {
 		return
 	}
 
-	var req updateMeRequest
+	var req types.UpdateMeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
@@ -238,7 +278,7 @@ func UpdateMeHandler(c *gin.Context) {
 }
 
 func LoginHandler(c *gin.Context) {
-	var req authRequest
+	var req types.AuthRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
@@ -268,5 +308,5 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, authResponse{Token: tok, Email: email})
+	c.JSON(http.StatusOK, types.AuthResponse{Token: tok, Email: email})
 }

@@ -1,17 +1,13 @@
 package handlers
 
 import (
-	"crypto/rand"
-	"encoding/hex"
-	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/MKolega/AirsoftHubCroatia/internal/db"
+	"github.com/MKolega/AirsoftHubCroatia/internal/storage"
 	"github.com/MKolega/AirsoftHubCroatia/types"
 	"github.com/gin-gonic/gin"
 )
@@ -37,14 +33,6 @@ func normalizeCategory(raw string) (string, bool) {
 	}
 	_, ok := allowedEventCategories[cat]
 	return cat, ok
-}
-
-func randomHex(bytesLen int) (string, error) {
-	b := make([]byte, bytesLen)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(b), nil
 }
 
 func HomeHandler(c *gin.Context) {
@@ -146,40 +134,16 @@ func CreateEventHandler(c *gin.Context) {
 		fileHeader, err := c.FormFile("thumbnail")
 		if err == nil && fileHeader != nil {
 			const maxSize = 5 << 20 // 5 MiB
-			if fileHeader.Size > maxSize {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Thumbnail too large (max 5MB)"})
-				return
-			}
-
-			mime := fileHeader.Header.Get("Content-Type")
-			if mime != "" && !strings.HasPrefix(mime, "image/") {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Thumbnail must be an image"})
-				return
-			}
-
-			if err := os.MkdirAll("uploads", 0o755); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare upload dir"})
-				return
-			}
-
-			rnd, err := randomHex(16)
+			url, err := storage.UploadThumbnail(c.Request.Context(), fileHeader, maxSize)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate filename"})
+				status := http.StatusInternalServerError
+				if storage.IsClientUploadError(err) {
+					status = http.StatusBadRequest
+				}
+				c.JSON(status, gin.H{"error": err.Error()})
 				return
 			}
-			ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
-			if ext == "" {
-				ext = ".img"
-			}
-			filename := fmt.Sprintf("%s%s", rnd, ext)
-			dst := filepath.Join("uploads", filename)
-
-			if err := c.SaveUploadedFile(fileHeader, dst); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save thumbnail"})
-				return
-			}
-
-			event.Thumbnail = "/uploads/" + filename
+			event.Thumbnail = url
 		}
 
 		if err := db.InsertEventToDB(&event); err != nil {
@@ -265,11 +229,6 @@ func AdminApproveEventHandler(c *gin.Context) {
 
 	c.Status(http.StatusNoContent)
 }
-
-type adminRejectRequest struct {
-	Reason string `json:"reason"`
-}
-
 func AdminRejectEventHandler(c *gin.Context) {
 	adminEmail, ok := requireAdmin(c)
 	if !ok {
@@ -282,7 +241,7 @@ func AdminRejectEventHandler(c *gin.Context) {
 		return
 	}
 
-	var req adminRejectRequest
+	var req types.AdminRejectRequest
 	_ = c.ShouldBindJSON(&req)
 
 	if err := db.ReviewEvent(id, "rejected", adminEmail, &req.Reason); err != nil {
@@ -343,40 +302,16 @@ func UpdateEventHandler(c *gin.Context) {
 		fileHeader, err := c.FormFile("thumbnail")
 		if err == nil && fileHeader != nil {
 			const maxSize = 5 << 20 // 5 MiB
-			if fileHeader.Size > maxSize {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Thumbnail too large (max 5MB)"})
-				return
-			}
-
-			mime := fileHeader.Header.Get("Content-Type")
-			if mime != "" && !strings.HasPrefix(mime, "image/") {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Thumbnail must be an image"})
-				return
-			}
-
-			if err := os.MkdirAll("uploads", 0o755); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare upload dir"})
-				return
-			}
-
-			rnd, err := randomHex(16)
+			url, err := storage.UploadThumbnail(c.Request.Context(), fileHeader, maxSize)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate filename"})
+				status := http.StatusInternalServerError
+				if storage.IsClientUploadError(err) {
+					status = http.StatusBadRequest
+				}
+				c.JSON(status, gin.H{"error": err.Error()})
 				return
 			}
-			ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
-			if ext == "" {
-				ext = ".img"
-			}
-			filename := fmt.Sprintf("%s%s", rnd, ext)
-			dst := filepath.Join("uploads", filename)
-
-			if err := c.SaveUploadedFile(fileHeader, dst); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save thumbnail"})
-				return
-			}
-
-			event.Thumbnail = "/uploads/" + filename
+			event.Thumbnail = url
 			columns = append(columns, "thumbnail")
 		}
 

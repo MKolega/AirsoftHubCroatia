@@ -31,3 +31,31 @@ type User struct {
 	PasswordHash string    `bun:"password_hash,notnull" json:"-"`
 	CreatedAt    time.Time `bun:"created_at,notnull" json:"created_at"`
 }
+
+// Auth / Profile API DTOs
+type AuthRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type RegisterRequest struct {
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+	Username    string `json:"username"`
+	AirsoftClub string `json:"airsoftClub"`
+}
+
+type AuthResponse struct {
+	Token string `json:"token"`
+	Email string `json:"email"`
+}
+
+type UpdateMeRequest struct {
+	Username    string `json:"username"`
+	AirsoftClub string `json:"airsoftClub"`
+}
+
+// Admin API DTOs
+type AdminRejectRequest struct {
+	Reason string `json:"reason"`
+}
