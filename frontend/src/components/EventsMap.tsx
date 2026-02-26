@@ -3,9 +3,15 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import * as L from 'leaflet';
 import axios from 'axios';
 
-import icon24h from '../assets/24h.jpg';
-import icon12h from '../assets/12h.jpg';
-import iconSkirmish from '../assets/Skirmish.webp';
+import assetsManifest from '../assets.r2.json';
+
+type AssetsManifest = Record<string, { key: string; url: string }>;
+
+const assets = assetsManifest as AssetsManifest;
+
+function assetUrl(name: string): string {
+  return assets[name]?.url ?? '';
+}
 
 function formatDateDDMMYYYY(value: string) {
   const d = new Date(value);
@@ -28,7 +34,7 @@ function categoryClassSuffix(category: string) {
 }
 
 function getCategoryIconUrl(category: string) {
-  return category === '24h' ? icon24h : category === '12h' ? icon12h : iconSkirmish;
+  return category === '24h' ? assetUrl('24h.jpg') : category === '12h' ? assetUrl('12h.jpg') : assetUrl('Skirmish.webp');
 }
 
 function parseLocalDateOnly(value: string): Date | null {
@@ -220,16 +226,16 @@ const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent, focusEventId, focusT
         <div style={{ fontSize: 12, opacity: 0.9, marginBottom: 8, fontWeight: 700 }}>Legend</div>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img src={icon24h} alt="24h" style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'cover' }} />
+            <img src={getCategoryIconUrl('24h')} alt="24h" style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'cover' }} />
             <span style={{ fontSize: 12, opacity: 0.95 }}>24h</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img src={icon12h} alt="12h" style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'cover' }} />
+            <img src={getCategoryIconUrl('12h')} alt="12h" style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'cover' }} />
             <span style={{ fontSize: 12, opacity: 0.95 }}>12h</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <img
-              src={iconSkirmish}
+              src={getCategoryIconUrl('Skirmish')}
               alt="Skirmish"
               style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'cover' }}
             />
