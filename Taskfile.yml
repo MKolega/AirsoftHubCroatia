@@ -20,28 +20,6 @@ tasks:
       - go test ./... -v
     desc: "Run all unit tests with verbose output"
 
-  # Run database migrations (up)
-  migrate-up:
-    cmds:
-      - migrate -path db/migrations -database "{{.DB_URL}}" up
-    desc: "Apply all database migrations"
-    vars:
-      DB_URL: "postgres://user:password@localhost:5432/mydb?sslmode=disable"
-
-  # Rollback last migration (down)
-  migrate-down:
-    cmds:
-      - migrate -path db/migrations -database "{{.DB_URL}}" down 1
-    desc: "Rollback the last database migration"
-    vars:
-      DB_URL: "postgres://user:password@localhost:5432/mydb?sslmode=disable"
-
-  # Generate SQLC code
-  sqlc:
-    cmds:
-      - sqlc generate
-    desc: "Generate Go code from SQL queries (sqlc)"
-
   # Build the project
   build:
     cmds:

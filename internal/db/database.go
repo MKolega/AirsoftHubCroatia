@@ -129,7 +129,9 @@ func Init() error {
 		return err
 	}
 	Bun = bun.NewDB(db, pgdialect.New())
-	Bun.AddQueryHook(bundebug.NewQueryHook())
+	if dbDebugEnabled() {
+		Bun.AddQueryHook(bundebug.NewQueryHook())
+	}
 
 	err = CreateUsersTable()
 	if err != nil {
@@ -153,6 +155,19 @@ func Init() error {
 		return err
 	}
 	return nil
+}
+
+func dbDebugEnabled() bool {
+	v := strings.TrimSpace(config.GetEnv("DB_DEBUG", "false"))
+	if v == "" {
+		return false
+	}
+	switch strings.ToLower(v) {
+	case "1", "true", "yes", "y", "on":
+		return true
+	default:
+		return false
+	}
 }
 
 func CreateEventsTable() error {

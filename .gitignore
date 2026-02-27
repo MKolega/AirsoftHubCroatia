@@ -1,3 +1,19 @@
 uploads/*
 !uploads/.gitkeep
 .env
+node_modules/
+frontend/node_modules/
+
+# Build output
+frontend/dist/
+dist/
+bin/
+
+# Database dumps
+*.dump
+*.sql
+*.sql.gz
+
+# OS / editor
+.DS_Store
+.idea/
