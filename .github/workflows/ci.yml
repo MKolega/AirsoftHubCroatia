@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install JS deps
+        run: npm ci
+
+      - name: Frontend lint
+        run: npm --workspace frontend run lint
+
+      - name: Frontend build
+        run: npm --workspace frontend run build
+
+      - name: Go tests
+        run: go test ./...
+
+      - name: Docker build (prod)
+        run: docker compose -f docker-compose.prod.yml build

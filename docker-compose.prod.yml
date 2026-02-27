@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: airsofthub_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-myuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mypassword}
+      POSTGRES_DB: ${POSTGRES_DB:-mydb}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - internal
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: airsofthub_api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Override the common local default to use the compose service hostname.
+      DATABASE_URL: ${DATABASE_URL:-postgres://myuser:mypassword@postgres:5432/mydb?sslmode=disable}
+      APP_ADDRESS: ${APP_ADDRESS:-:8080}
+    depends_on:
+      - postgres
+    networks:
+      - internal
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: airsofthub_web
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:-airsofthubcroatia.eu}
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - internal
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
+
+networks:
+  internal:
+    driver: bridge
