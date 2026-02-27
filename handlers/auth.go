@@ -139,6 +139,11 @@ func emailFromAuthHeader(c *gin.Context) (string, bool) {
 }
 
 func RegisterHandler(c *gin.Context) {
+	if maintenanceEnabled() {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Under maintenance"})
+		return
+	}
+
 	var req types.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
@@ -299,6 +304,11 @@ func LoginHandler(c *gin.Context) {
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+		return
+	}
+
+	if maintenanceEnabled() && !user.IsAdmin {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Under maintenance: admins only"})
 		return
 	}
 

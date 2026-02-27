@@ -79,6 +79,7 @@ type EventsMapProps = {
   onOpenEvent?: (id: number) => void;
   focusEventId?: number;
   focusToken?: number;
+  authToken: string | null;
 };
 
 type FocusControllerProps = {
@@ -135,7 +136,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent, focusEventId, focusToken }) => {
+const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent, focusEventId, focusToken, authToken }) => {
   const [events, setEvents] = useState<Event[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -144,12 +145,28 @@ const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent, focusEventId, focusT
   const markersRef = useRef<Map<number, L.Marker>>(new Map());
 
   useEffect(() => {
-    axios.get('/api/events')
-      .then(res => setEvents(res.data || []))
+    const controller = new AbortController();
+
+    queueMicrotask(() => setError(null));
+
+    axios
+      .get('/api/events', {
+        signal: controller.signal,
+        headers: authToken
+          ? {
+              Accept: 'application/json',
+              Authorization: `Bearer ${authToken}`,
+            }
+          : { Accept: 'application/json' },
+      })
+      .then(res => setEvents(Array.isArray(res.data) ? res.data : []))
       .catch(err => {
+        if (controller.signal.aborted) return;
         setError(err instanceof Error ? err.message : String(err));
       });
-  }, []);
+
+    return () => controller.abort();
+  }, [authToken]);
 
   const createCategoryIcon = (categoryRaw?: string) => {
     const category = normalizeCategory(categoryRaw);

@@ -88,7 +88,20 @@ const EventsPage: React.FC<EventsPageProps> = ({
   useEffect(() => {
     const controller = new AbortController();
 
-    fetch('/api/events', { signal: controller.signal })
+    queueMicrotask(() => {
+      setLoading(true);
+      setError(null);
+    });
+
+    fetch('/api/events', {
+      signal: controller.signal,
+      headers: authToken
+        ? {
+            Accept: 'application/json',
+            Authorization: `Bearer ${authToken}`,
+          }
+        : { Accept: 'application/json' },
+    })
       .then(async res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -102,7 +115,7 @@ const EventsPage: React.FC<EventsPageProps> = ({
       });
 
     return () => controller.abort();
-  }, []);
+  }, [authToken]);
 
   useEffect(() => {
     if (!authToken) {

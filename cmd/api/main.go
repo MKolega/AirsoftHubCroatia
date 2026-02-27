@@ -36,6 +36,9 @@ func main() {
 	//API Routes
 	api := router.Group("/api")
 	{
+		api.GET("/maintenance", handlers.MaintenanceStatusHandler)
+		api.Use(handlers.MaintenanceGate())
+
 		api.GET("/events", handlers.EventsHandler)
 		api.GET("/my-events", handlers.MyEventsHandler)
 		api.POST("/events", handlers.LimitRequestBody(7<<20), handlers.CreateEventHandler)

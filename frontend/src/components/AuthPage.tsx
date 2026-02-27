@@ -168,7 +168,15 @@ const AuthPage: React.FC<AuthPageProps> = ({
     const controller = new AbortController();
     setMyEventsError(null);
 
-    fetch('/api/events', { signal: controller.signal })
+    fetch('/api/events', {
+      signal: controller.signal,
+      headers: authToken
+        ? {
+            Accept: 'application/json',
+            Authorization: `Bearer ${authToken}`,
+          }
+        : { Accept: 'application/json' },
+    })
       .then(async res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -183,7 +191,7 @@ const AuthPage: React.FC<AuthPageProps> = ({
       });
 
     return () => controller.abort();
-  }, [signedIn, signedInEmail]);
+  }, [signedIn, signedInEmail, authToken]);
 
   useEffect(() => {
     if (!signedIn || !authToken) {

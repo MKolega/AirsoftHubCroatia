@@ -5,6 +5,7 @@ import EventsPage from './components/EventsPage'; // new file
 import AdminCreateEvent from './components/CreateEvent';
 import EditEvent from './components/EditEvent';
 import AuthPage from './components/AuthPage';
+import MaintenancePage from './components/MaintenancePage';
 
 type EventForSidebar = {
   id: number;
@@ -136,6 +137,26 @@ function App() {
   const [meIsAdmin, setMeIsAdmin] = useState(false);
   const [meChecked, setMeChecked] = useState(false);
 
+  const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
+  const [maintenanceChecked, setMaintenanceChecked] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch('/api/maintenance', { signal: controller.signal, headers: { Accept: 'application/json' } })
+      .then(async res => {
+        const data = (await res.json().catch(() => ({}))) as { enabled?: boolean };
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        setMaintenanceEnabled(Boolean(data?.enabled));
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setMaintenanceEnabled(false);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setMaintenanceChecked(true);
+      });
+    return () => controller.abort();
+  }, []);
+
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
     if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
@@ -188,7 +209,17 @@ function App() {
   useEffect(() => {
     const controller = new AbortController();
 
-    fetch('/api/events', { signal: controller.signal })
+    // In maintenance mode the API is admin-only; avoid spamming 503s before login.
+    if (maintenanceChecked && maintenanceEnabled && !auth.token) {
+      return () => controller.abort();
+    }
+
+    fetch('/api/events', {
+      signal: controller.signal,
+      headers: auth.token
+        ? { Authorization: `Bearer ${auth.token}` }
+        : undefined,
+    })
       .then(async res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -199,6 +230,7 @@ function App() {
           .map(parseEventForSidebar)
           .filter(Boolean) as EventForSidebar[];
         setSidebarEvents(next);
+        setSidebarError(null);
       })
       .catch(err => {
         if (!controller.signal.aborted) {
@@ -207,7 +239,7 @@ function App() {
       });
 
     return () => controller.abort();
-  }, []);
+  }, [auth.token, maintenanceChecked, maintenanceEnabled]);
 
   const sortedSidebarEvents = React.useMemo(() => {
     const upcoming = sidebarEvents.filter(e => !isPastEventDate(e.date));
@@ -236,19 +268,11 @@ function App() {
 
   const isSignedIn = Boolean(auth.token);
 
-  const navigateEvent = (eventId: number) => {
-    const path = `/events/${eventId}`;
-    window.history.pushState({}, '', path);
-    setRoute({ page: 'event-detail', eventId });
-  };
-
-  const navigateEdit = (eventId: number) => {
-    const path = `/events/${eventId}/edit`;
-    window.history.pushState({}, '', path);
-    setRoute({ page: 'edit-event', eventId });
-  };
-
   useEffect(() => {
+    // Avoid redirect/toast side-effects while the app is gated by maintenance mode.
+    if (!maintenanceChecked) return;
+    if (maintenanceEnabled) return;
+
     if (route.page !== 'edit-event') return;
     if (!meChecked) return;
     if (meIsAdmin) return;
@@ -264,7 +288,70 @@ function App() {
       window.history.replaceState({}, '', '/events');
       setRoute(getRouteFromPath('/events'));
     });
-  }, [route, meChecked, meIsAdmin]);
+  }, [route, meChecked, meIsAdmin, maintenanceChecked, maintenanceEnabled]);
+
+  if (!maintenanceChecked) {
+    return (
+      <pre style={{ padding: 16, whiteSpace: 'pre-wrap' }}>
+        Loading…
+      </pre>
+    );
+  }
+
+  if (maintenanceEnabled) {
+    if (!auth.token) {
+      return (
+        <ErrorBoundary>
+          <MaintenancePage
+            onAuthUpdate={(token, email) => {
+              if (token) window.localStorage.setItem('authToken', token);
+              else window.localStorage.removeItem('authToken');
+              if (email) window.localStorage.setItem('authEmail', email);
+              else window.localStorage.removeItem('authEmail');
+              setAuth({ token, email });
+            }}
+          />
+        </ErrorBoundary>
+      );
+    }
+
+  
+    if (!meChecked) {
+      return (
+        <pre style={{ padding: 16, whiteSpace: 'pre-wrap' }}>
+          Checking admin access…
+        </pre>
+      );
+    }
+
+    if (!meIsAdmin) {
+      return (
+        <ErrorBoundary>
+          <MaintenancePage
+            onAuthUpdate={(token, email) => {
+              if (token) window.localStorage.setItem('authToken', token);
+              else window.localStorage.removeItem('authToken');
+              if (email) window.localStorage.setItem('authEmail', email);
+              else window.localStorage.removeItem('authEmail');
+              setAuth({ token, email });
+            }}
+          />
+        </ErrorBoundary>
+      );
+    }
+  }
+
+  const navigateEvent = (eventId: number) => {
+    const path = `/events/${eventId}`;
+    window.history.pushState({}, '', path);
+    setRoute({ page: 'event-detail', eventId });
+  };
+
+  const navigateEdit = (eventId: number) => {
+    const path = `/events/${eventId}/edit`;
+    window.history.pushState({}, '', path);
+    setRoute({ page: 'edit-event', eventId });
+  };
 
   const focusEventOnMap = (eventId: number) => {
     navigate('map');
@@ -357,6 +444,7 @@ function App() {
                 onOpenEvent={navigateEvent}
                 focusEventId={mapFocus?.eventId}
                 focusToken={mapFocus?.token}
+                authToken={auth.token}
               />
             )}
             {route.page === 'events' && (

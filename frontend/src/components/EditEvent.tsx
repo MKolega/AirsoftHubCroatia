@@ -115,7 +115,15 @@ const EditEvent: React.FC<EditEventProps> = ({ eventId, authToken, onDone }) => 
     setLoading(true);
     setLoadError(null);
 
-    fetch('/api/events', { signal: controller.signal })
+    fetch('/api/events', {
+      signal: controller.signal,
+      headers: authToken
+        ? {
+            Accept: 'application/json',
+            Authorization: `Bearer ${authToken}`,
+          }
+        : { Accept: 'application/json' },
+    })
       .then(async res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -150,7 +158,7 @@ const EditEvent: React.FC<EditEventProps> = ({ eventId, authToken, onDone }) => 
       });
 
     return () => controller.abort();
-  }, [eventId]);
+  }, [eventId, authToken]);
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const key = e.target.name as StringField;
