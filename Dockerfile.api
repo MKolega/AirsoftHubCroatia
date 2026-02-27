@@ -14,11 +14,10 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     go build -trimpath -ldflags="-s -w" -o /out/api ./cmd/api
 
 
-FROM alpine:3.21
+FROM scratch
 
-RUN apk add --no-cache ca-certificates \
-  && addgroup -S app \
-  && adduser -S app -G app
+# TLS root CAs for outbound HTTPS calls (e.g., Cloudflare R2 endpoint).
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
 WORKDIR /app
 COPY --from=builder /out/api /app/api
@@ -26,5 +25,5 @@ COPY --from=builder /out/api /app/api
 ENV APP_ADDRESS=":8080"
 EXPOSE 8080
 
-USER app
+USER 65532:65532
 ENTRYPOINT ["/app/api"]
