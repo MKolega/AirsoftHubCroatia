@@ -37,6 +37,18 @@ npm --workspace frontend run build
 - Merging to `main` triggers the GitHub Actions deploy workflow.
 - The VPS deploy runs [deploy/deploy.sh](deploy/deploy.sh), which pulls `origin/main` and restarts the production compose stack.
 
+### SSH host key pinning (recommended)
+
+The deploy workflow supports pinning the VPS SSH host key via a GitHub Secret called `VPS_SSH_KNOWN_HOSTS`.
+
+Generate it (use the VPS **IP/hostname you SSH into**):
+
+```bash
+ssh-keyscan -p 22 -H <VPS_IP_OR_HOSTNAME>
+```
+
+Copy the full output line(s) into the `VPS_SSH_KNOWN_HOSTS` GitHub Secret.
+
 ## Branch protection (recommended)
 
 In GitHub:
