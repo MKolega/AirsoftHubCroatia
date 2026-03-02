@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import * as L from 'leaflet';
 import axios from 'axios';
+import { alpha, useTheme } from '@mui/material/styles';
+import './EventsMap.css';
 
 import assetsManifest from '../assets.r2.json';
 
@@ -67,6 +69,7 @@ interface Event {
   id: number;
   name: string;
   description?: string;
+  detailed_description?: string;
   location?: string;
   date?: string;
   lat: number;
@@ -137,6 +140,7 @@ L.Icon.Default.mergeOptions({
 });
 
 const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent, focusEventId, focusToken, authToken }) => {
+  const theme = useTheme();
   const [events, setEvents] = useState<Event[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -168,21 +172,46 @@ const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent, focusEventId, focusT
     return () => controller.abort();
   }, [authToken]);
 
-  const createCategoryIcon = (categoryRaw?: string) => {
-    const category = normalizeCategory(categoryRaw);
-    const suffix = categoryClassSuffix(category);
+  const createCategoryIcon = useMemo(() => {
+    return (categoryRaw?: string) => {
+      const category = normalizeCategory(categoryRaw);
+      const suffix = categoryClassSuffix(category);
 
-    const iconUrl = getCategoryIconUrl(category);
-    const bubbleInner = `<img class="eventMarker__img" src="${iconUrl}" alt="${category}" />`;
+   
+      const accent =
+        category === '24h'
+          ? theme.palette.primary.main
+          : category === '12h'
+            ? theme.palette.warning.main
+            : theme.palette.success.main;
 
-	return L.divIcon({
-		className: `eventMarker eventMarker--${suffix}`,
-	  html: `<div class="eventMarker__pin"><div class="eventMarker__bubble">${bubbleInner}</div></div>`,
-      iconSize: [48, 62],
-      iconAnchor: [24, 62],
-      popupAnchor: [0, -56],
-	});
-  };
+      const markerBg = alpha(theme.palette.background.paper, 0.94);
+      const markerStroke = alpha(theme.palette.common.black, 0.10);
+
+      const glowAlpha = category === '24h' ? 0.34 : category === '12h' ? 0.20 : 0.26;
+      const glowSpread = category === '24h' ? 8 : category === '12h' ? 5 : 7;
+      const markerGlow = alpha(accent, glowAlpha);
+
+      const style = `--marker-accent:${accent};--marker-bg:${markerBg};--marker-glow:${markerGlow};--marker-glow-spread:${glowSpread}px;--marker-stroke:${markerStroke};`;
+
+      const iconUrl = getCategoryIconUrl(category);
+      const bubbleInner = `<img class="eventMarker__img" src="${iconUrl}" alt="${category}" />`;
+
+      return L.divIcon({
+        className: `eventMarker eventMarker--${suffix}`,
+        html: `<div class="eventMarker__pin" style="${style}"><div class="eventMarker__bubble"><div class="eventMarker__content">${bubbleInner}</div></div></div>`,
+        iconSize: [48, 62],
+        iconAnchor: [24, 62],
+        popupAnchor: [0, -56],
+      });
+    };
+  }, [
+    theme.palette.background.paper,
+    theme.palette.common.black,
+    theme.palette.primary.main,
+    theme.palette.success.main,
+    theme.palette.warning.main,
+  ]);
 
   const upcomingEvents = events.filter(e => !isPastEventDate(e.date));
 
@@ -190,6 +219,73 @@ const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent, focusEventId, focusT
     categoryFilter === 'All'
       ? upcomingEvents
       : upcomingEvents.filter(e => (e.category ?? 'Skirmish') === categoryFilter);
+
+  const normalizeText = (value: string) => {
+    return value
+      .trim()
+      // Normalize common "invisible" separators from copy/paste
+      .replace(/\u00A0/g, ' ')
+      .replace(/\u200B/g, ' ')
+      .replace(/\u200C/g, ' ')
+      .replace(/\u200D/g, ' ')
+      .replace(/\uFEFF/g, ' ')
+      .trim();
+  };
+
+  const truncateToCharCount = (text: string, maxChars: number) => {
+    const trimmed = normalizeText(text);
+    if (!trimmed) return { preview: '', truncated: false };
+    if (maxChars <= 0) return { preview: '', truncated: true };
+
+    // Count by unicode code points (safer than UTF-16 code units).
+    const chars = Array.from(trimmed);
+    if (chars.length <= maxChars) return { preview: trimmed, truncated: false };
+
+    let preview = chars.slice(0, maxChars).join('').trimEnd();
+
+    // Prefer not to cut mid-word when possible.
+    const lastSpace = preview.lastIndexOf(' ');
+    if (lastSpace >= Math.floor(maxChars * 0.55)) {
+      preview = preview.slice(0, lastSpace).trimEnd();
+    }
+
+    return { preview, truncated: true };
+  };
+
+  const renderPopupDescription = (event: Event) => {
+    const short = normalizeText(event.description ?? '');
+    const detailed = normalizeText(event.detailed_description ?? '');
+
+    // Prefer the short description if it exists. This keeps map popups compact and
+    // avoids legacy events (pre-limit) showing huge blocks of text.
+    const source = short || detailed;
+    if (!source) return null;
+
+    // Map popup preview is capped to 250 characters.
+    // (Short description is still limited to 400 chars on input, but we keep popups tighter.)
+    const result = truncateToCharCount(source, 250);
+    const { preview, truncated } = result;
+
+    return (
+      <div className="eventsMap__popupDesc">
+        <span>{preview}</span>
+        {truncated ? (
+          <>
+            <span>… </span>
+            <button
+              type="button"
+              className="eventsMap__popupReadMore"
+              onClick={() => onOpenEvent?.(event.id)}
+              disabled={!onOpenEvent}
+              aria-disabled={!onOpenEvent}
+            >
+              Read more
+            </button>
+          </>
+        ) : null}
+      </div>
+    );
+  };
 
   const ensureFocusedEventVisible = useMemo(() => {
     return () => {
@@ -199,25 +295,17 @@ const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent, focusEventId, focusT
   }, []);
 
   return (
-    <div style={{ height: '100%', width: '100%', position: 'relative' }}>
-      {error && <div style={{ color: 'red', padding: 8 }}>Error: {error}</div>}
+    <div className="eventsMap">
+      {error ? <div className="eventsMap__error">Error: {error}</div> : null}
 
-      <div
-        style={{
-          position: 'absolute',
-          top: 12,
-          right: 12,
-          zIndex: 1000,
-          background: 'rgba(0,0,0,0.55)',
-          border: '1px solid rgba(255,255,255,0.18)',
-          borderRadius: 10,
-          padding: '10px 12px',
-          backdropFilter: 'blur(6px)',
-        }}
-      >
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 12, opacity: 0.9 }}>Category</span>
-          <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
+      <div className="eventsMap__panel eventsMap__panel--filter">
+        <label className="eventsMap__label">
+          <span className="eventsMap__labelText">Category</span>
+          <select
+            className="eventsMap__select"
+            value={categoryFilter}
+            onChange={e => setCategoryFilter(e.target.value)}
+          >
             <option value="All">All</option>
             <option value="24h">24h</option>
             <option value="12h">12h</option>
@@ -226,42 +314,25 @@ const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent, focusEventId, focusT
         </label>
       </div>
 
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 46,
-          right: 12,
-          zIndex: 1000,
-          background: 'rgba(0,0,0,0.55)',
-          border: '1px solid rgba(255,255,255,0.18)',
-          borderRadius: 10,
-          padding: '10px 12px',
-          backdropFilter: 'blur(6px)',
-        }}
-        aria-label="Map legend"
-      >
-        <div style={{ fontSize: 12, opacity: 0.9, marginBottom: 8, fontWeight: 700 }}>Legend</div>
-        <div style={{ display: 'grid', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img src={getCategoryIconUrl('24h')} alt="24h" style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'cover' }} />
-            <span style={{ fontSize: 12, opacity: 0.95 }}>24h</span>
+      <div className="eventsMap__panel eventsMap__panel--legend" aria-label="Map legend">
+        <div className="eventsMap__legendTitle">Legend</div>
+        <div className="eventsMap__legendGrid">
+          <div className="eventsMap__legendRow">
+            <img src={getCategoryIconUrl('24h')} alt="24h" className="eventsMap__legendIcon" />
+            <span className="eventsMap__legendText">24h</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img src={getCategoryIconUrl('12h')} alt="12h" style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'cover' }} />
-            <span style={{ fontSize: 12, opacity: 0.95 }}>12h</span>
+          <div className="eventsMap__legendRow">
+            <img src={getCategoryIconUrl('12h')} alt="12h" className="eventsMap__legendIcon" />
+            <span className="eventsMap__legendText">12h</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img
-              src={getCategoryIconUrl('Skirmish')}
-              alt="Skirmish"
-              style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'cover' }}
-            />
-            <span style={{ fontSize: 12, opacity: 0.95 }}>Skirmish</span>
+          <div className="eventsMap__legendRow">
+            <img src={getCategoryIconUrl('Skirmish')} alt="Skirmish" className="eventsMap__legendIcon" />
+            <span className="eventsMap__legendText">Skirmish</span>
           </div>
         </div>
       </div>
 
-      <MapContainer center={[44.7, 16]} zoom={7.5} style={{ height: '100%', width: '100%' }}>
+      <MapContainer center={[44.7, 16]} zoom={7.5} className="eventsMap__map">
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -291,25 +362,17 @@ const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent, focusEventId, focusT
                 <div>
                   <button
                     type="button"
+                    className="eventsMap__popupTitleBtn"
                     onClick={() => onOpenEvent?.(event.id)}
                     disabled={!onOpenEvent}
                     aria-disabled={!onOpenEvent}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      padding: 0,
-                      fontWeight: 800,
-                      color: 'inherit',
-                      textDecoration: 'underline',
-                      cursor: onOpenEvent ? 'pointer' : 'default',
-                    }}
                   >
                     {event.name}
                   </button>
                   <div>Category: {event.category ?? 'Skirmish'}</div>
                   {event.date && <div>Date: {formatDateDDMMYYYY(event.date)}</div>}
                   {event.location && <div>{event.location}</div>}
-                  {event.description && <div>{event.description}</div>}
+                  {renderPopupDescription(event)}
                 </div>
               </Popup>
             </Marker>

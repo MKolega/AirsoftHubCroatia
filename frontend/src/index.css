@@ -1,11 +1,39 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: light;
+
+  --c-bg: #ffffff;
+  --c-surface: #ffffff;
+  --c-surface-2: #f6f7f9;
+  --c-text: #111827;
+  --c-muted: #6b7280;
+  --c-border: rgba(17, 24, 39, 0.12);
+
+  --c-primary: #dc2626;
+  --c-primary-strong: #b91c1c;
+  --c-primary-soft: rgba(220, 38, 38, 0.10);
+  --c-primary-soft-2: rgba(220, 38, 38, 0.16);
+
+  --c-star: #f59e0b;
+  --c-star-strong: #d97706;
+
+  --c-danger: #b91c1c;
+  --c-danger-soft: rgba(185, 28, 28, 0.10);
+
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.06), 0 10px 24px rgba(0, 0, 0, 0.06);
+  --shadow-2: 0 2px 6px rgba(0, 0, 0, 0.08), 0 18px 44px rgba(0, 0, 0, 0.10);
+
+  --focus-ring: 0 0 0 4px rgba(220, 38, 38, 0.22);
+
+  color: var(--c-text);
+  background-color: var(--c-bg);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -14,12 +42,14 @@
 }
 
 a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
+  font-weight: 600;
+  color: var(--c-primary);
+  text-decoration: none;
 }
+
 a:hover {
-  color: #535bf2;
+  color: var(--c-primary-strong);
+  text-decoration: underline;
 }
 
 html, body, #root {
@@ -33,6 +63,8 @@ body {
   min-height: 100vh;
   display: block; /* was flex */
   place-items: initial; /* disable centering */
+  color: var(--c-text);
+  background: var(--c-bg);
 }
 
 h1 {
@@ -40,34 +72,69 @@ h1 {
   line-height: 1.1;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
+button:not(.MuiButtonBase-root) {
+  border-radius: 999px;
+  border: 1px solid var(--c-border);
+  padding: 0.55em 1.05em;
+  font-size: 0.95em;
+  font-weight: 700;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: var(--c-surface);
+  color: var(--c-text);
   cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+button:not(.MuiButtonBase-root):hover {
+  border-color: rgba(220, 38, 38, 0.35);
+  background: var(--c-surface-2);
+}
+
+button:not(.MuiButtonBase-root):active {
+  transform: translateY(1px);
+}
+
+button:not(.MuiButtonBase-root):disabled,
+button:not(.MuiButtonBase-root)[aria-disabled="true"] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button:not(.MuiButtonBase-root):focus,
+button:not(.MuiButtonBase-root):focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+input:not(.MuiInputBase-input),
+select:not(.MuiSelect-select),
+textarea:not(.MuiInputBase-input) {
+  font: inherit;
+  color: var(--c-text);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+input:not(.MuiInputBase-input):focus,
+select:not(.MuiSelect-select):focus,
+textarea:not(.MuiInputBase-input):focus {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-color: rgba(220, 38, 38, 0.35);
+}
+
+/* Leaflet popup polish to match the theme */
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+}
+
+.leaflet-popup-content {
+  margin: 10px 12px;
+  color: var(--c-text);
+}
+
+.leaflet-container a {
+  color: var(--c-primary);
 }

@@ -1,14 +1,14 @@
 {
   "12h.jpg": {
-    "key": "assets/12h.jpg",
-    "url": "https://pub-4c6d6dec15344096aa18feb9e41866a6.r2.dev/assets/12h.jpg"
+    "key": "assets/12h.png",
+    "url": "https://pub-4c6d6dec15344096aa18feb9e41866a6.r2.dev/assets/12h.png"
   },
   "24h.jpg": {
     "key": "assets/24h.jpg",
     "url": "https://pub-4c6d6dec15344096aa18feb9e41866a6.r2.dev/assets/24h.jpg"
   },
   "Skirmish.webp": {
-    "key": "assets/Skirmish.webp",
-    "url": "https://pub-4c6d6dec15344096aa18feb9e41866a6.r2.dev/assets/Skirmish.webp"
+    "key": "assets/skirmish.png",
+    "url": "https://pub-4c6d6dec15344096aa18feb9e41866a6.r2.dev/assets/skirmish.png"
   }
 }

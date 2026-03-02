@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/MKolega/AirsoftHubCroatia/internal/db"
 	"github.com/MKolega/AirsoftHubCroatia/internal/storage"
@@ -99,6 +100,18 @@ func CreateEventHandler(c *gin.Context) {
 			return
 		}
 
+		detailed := strings.TrimSpace(c.PostForm("detailedDescription"))
+		if detailed == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Detailed description is required"})
+			return
+		}
+
+		description := strings.TrimSpace(c.PostForm("description"))
+		if utf8.RuneCountInString(description) > 400 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Small description must be 400 characters or less"})
+			return
+		}
+
 		category, ok := normalizeCategory(c.PostForm("category"))
 		if !ok {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category"})
@@ -120,8 +133,8 @@ func CreateEventHandler(c *gin.Context) {
 		event := types.Event{
 			Status:              status,
 			Name:                name,
-			Description:         c.PostForm("description"),
-			DetailedDescription: c.PostForm("detailedDescription"),
+			Description:         description,
+			DetailedDescription: detailed,
 			CreatorEmail:        creatorEmail,
 			Location:            c.PostForm("location"),
 			Date:                c.PostForm("date"),
@@ -168,6 +181,18 @@ func CreateEventHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category"})
 		return
 	}
+
+	event.Description = strings.TrimSpace(event.Description)
+	event.DetailedDescription = strings.TrimSpace(event.DetailedDescription)
+	if event.DetailedDescription == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Detailed description is required"})
+		return
+	}
+	if utf8.RuneCountInString(event.Description) > 400 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Small description must be 400 characters or less"})
+		return
+	}
+
 	event.Category = category
 	event.CreatorEmail = creatorEmail
 	event.Status = status
@@ -285,10 +310,22 @@ func UpdateEventHandler(c *gin.Context) {
 			return
 		}
 
+		detailed := strings.TrimSpace(c.PostForm("detailedDescription"))
+		if detailed == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Detailed description is required"})
+			return
+		}
+
+		description := strings.TrimSpace(c.PostForm("description"))
+		if utf8.RuneCountInString(description) > 400 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Small description must be 400 characters or less"})
+			return
+		}
+
 		event := types.Event{
 			Name:                name,
-			Description:         c.PostForm("description"),
-			DetailedDescription: c.PostForm("detailedDescription"),
+			Description:         description,
+			DetailedDescription: detailed,
 			Location:            c.PostForm("location"),
 			Date:                c.PostForm("date"),
 			Lat:                 lat,
@@ -337,6 +374,18 @@ func UpdateEventHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category"})
 		return
 	}
+
+	event.Description = strings.TrimSpace(event.Description)
+	event.DetailedDescription = strings.TrimSpace(event.DetailedDescription)
+	if event.DetailedDescription == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Detailed description is required"})
+		return
+	}
+	if utf8.RuneCountInString(event.Description) > 400 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Small description must be 400 characters or less"})
+		return
+	}
+
 	event.Category = category
 	columns := []string{"name", "description", "detailed_description", "location", "date", "lat", "lng", "category", "facebook_link"}
 	if event.Thumbnail != "" {

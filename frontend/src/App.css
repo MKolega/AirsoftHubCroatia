@@ -48,7 +48,7 @@
   width: 100vw;
   display: flex;
   flex-direction: column;
-  background: transparent;
+  background: var(--c-bg);
 }
 
 .appToast {
@@ -57,10 +57,9 @@
   right: 12px;
   z-index: 6000;
   padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.32);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--c-border);
+  box-shadow: var(--shadow-2);
   color: #fff;
   font-weight: 700;
   max-width: min(92vw, 320px);
@@ -76,67 +75,119 @@
 
 .topbar {
   flex: 0 0 auto;
-  background: rgba(0, 0, 0, 0.65);
+  background: var(--c-primary);
   color: #fff;
-  border-bottom: 1px solid rgba(255,255,255,0.12);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
 }
 
 .topbar__inner {
+  display: grid;
+  grid-template-columns: 260px 1fr auto;
+  align-items: center;
+  column-gap: 14px;
+  min-height: 56px;
+  padding: 0 14px 0 0;
+  box-sizing: border-box;
+}
+
+.topbar__brandTile {
+  align-self: stretch;
+  height: 100%;
+  width: 260px;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 14px;
-  padding: 10px;
-  box-sizing: border-box;
+  justify-content: center;
+  padding: 0 12px;
+  background: var(--c-primary);
+  border-right: 1px solid rgba(0, 0, 0, 0.10);
 }
 
 .topbar__title {
   font-weight: 800;
   letter-spacing: 0.02em;
   white-space: nowrap;
-  opacity: 0.96;
+  color: #fff;
+  text-align: center;
 }
 
 .topbar__nav {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   flex-wrap: nowrap;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-
-.topbar__nav::-webkit-scrollbar {
-  display: none;
+  justify-self: center;
+  align-self: stretch;
+  height: 100%;
 }
 
 .topbar__right {
-  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 8px;
+  justify-self: end;
 }
 
 .topbar__btn {
   margin: 0;
   padding: 7px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.04);
-  color: inherit;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  color: var(--c-text);
   cursor: pointer;
   line-height: 1;
 }
 
+/* Make the main nav buttons feel "classy" while staying white */
+.topbar__nav .topbar__btn {
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 22px;
+  color: #fff;
+  background: var(--c-primary);
+  border-top: 0;
+  border-bottom: 0;
+  border-left: 1px solid rgba(0, 0, 0, 0.45);
+  border-right: 1px solid rgba(0, 0, 0, 0.45);
+  border-radius: 0;
+  box-shadow: none;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.topbar__nav .topbar__btn:hover {
+  background: var(--c-primary-strong);
+  border-left-color: rgba(0, 0, 0, 0.60);
+  border-right-color: rgba(0, 0, 0, 0.60);
+}
+
+.topbar__nav .topbar__btn:active {
+  background: rgba(0, 0, 0, 0.16);
+}
+
 .topbar__btn:hover {
-  border-color: rgba(255,255,255,0.35);
-  background: rgba(255,255,255,0.10);
+  border-color: rgba(220, 38, 38, 0.35);
+  background: var(--c-surface-2);
 }
 
 .topbar__btn[aria-current="page"] {
-  border-color: rgba(255,255,255,0.40);
-  background: rgba(255,255,255,0.14);
+  border-color: rgba(0, 0, 0, 0.12);
+  background: #fff;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+}
+
+.topbar__nav .topbar__btn[aria-current="page"] {
+  color: #fff;
+  background: rgba(0, 0, 0, 0.18);
+  border-left-color: rgba(0, 0, 0, 0.70);
+  border-right-color: rgba(0, 0, 0, 0.70);
+  box-shadow: none;
 }
 
 .appBody {
@@ -145,20 +196,26 @@
   min-width: 0;
   display: flex;
   flex-direction: row;
+  /* subtle separation line right under the topbar */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
 .sidebar {
   width: 260px;
   height: 100%;
-  background: rgba(0, 0, 0, 0.65);
+  background: var(--c-primary);
   color: #fff;
-  padding: 10px;
+  border-right: 1px solid rgba(0, 0, 0, 0.10);
+  padding: 12px;
   box-sizing: border-box;
   overflow: auto;
+  /* soft edge shading */
+  box-shadow: 10px 0 22px rgba(0, 0, 0, 0.12);
+  position: relative;
 }
 
 .sidebar__meta {
-  opacity: 0.9;
+  color: rgba(255, 255, 255, 0.88);
   font-size: 12px;
 }
 
@@ -173,15 +230,16 @@
   text-align: left;
   padding: 8px 10px;
   border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.04);
-  color: inherit;
+  border: 1px solid var(--c-border);
+  background: #fff;
+  color: var(--c-text);
   cursor: pointer;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.02);
 }
 
 .eventsMiniList__item:hover {
-  border-color: rgba(255,255,255,0.35);
-  background: rgba(255,255,255,0.10);
+  border-color: rgba(220, 38, 38, 0.30);
+  background: var(--c-surface-2);
 }
 
 .eventsMiniList__item:focus-visible {
@@ -202,7 +260,7 @@
 
 .eventsMiniList__meta {
   margin-top: 4px;
-  opacity: 0.9;
+  color: rgba(17, 24, 39, 0.72);
   font-size: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -212,12 +270,12 @@
 .sidebar__section + .sidebar__section {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid rgba(255,255,255,0.15);
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
 }
 
 .sidebar__title {
   font-size: 12px;
-  opacity: 0.9;
+  color: rgba(255, 255, 255, 0.90);
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -251,22 +309,31 @@
   box-sizing: border-box;
   padding: 16px;
   overflow: auto;
+  background: var(--c-surface-2);
 }
 
 .warningBox {
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 12px 12px;
-  border: 1px solid rgba(255, 193, 7, 0.45);
-  background: rgba(255, 193, 7, 0.14);
-  color: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.10);
+  color: var(--c-text);
 }
 
 .eventCard {
   position: relative;
   padding: 12px;
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.04);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  box-shadow: var(--shadow-1);
+  transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.eventCard:hover {
+  border-color: rgba(220, 38, 38, 0.28);
+  box-shadow: var(--shadow-2);
+  transform: translateY(-1px);
 }
 
 .eventSaveBtn {
@@ -276,22 +343,22 @@
   padding: 4px 6px;
   border: 0;
   background: transparent;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(17, 24, 39, 0.65);
   font-size: 24px;
   line-height: 1;
   cursor: pointer;
 }
 
 .eventSaveBtn--saved {
-  color: rgba(255, 193, 7, 0.95);
+  color: var(--c-star);
 }
 
 .eventSaveBtn:hover {
-  color: rgba(255, 255, 255, 1);
+  color: rgba(17, 24, 39, 0.92);
 }
 
 .eventSaveBtn--saved:hover {
-  color: rgba(255, 193, 7, 1);
+  color: var(--c-star-strong);
 }
 
 .eventCategoryBadge {
@@ -303,9 +370,9 @@
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.01em;
-  border: 1px solid rgba(255,255,255,0.18);
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.92);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  background: var(--c-primary-soft);
+  color: var(--c-primary-strong);
 }
 
 .event-thumbnail-icon {
@@ -318,14 +385,17 @@
   border: 0;
 
   /* Unified (non-category) marker styling */
-  --marker-accent: rgba(0, 0, 0, 0.92);
-  --marker-bg: rgba(0, 0, 0, 0.55);
+  --marker-accent: var(--c-primary);
+  --marker-bg: rgba(255, 255, 255, 0.94);
+  --marker-glow: rgba(220, 38, 38, 0.22);
+  --marker-stroke: rgba(17, 24, 39, 0.10);
 }
 
 .eventMarker__pin {
   position: relative;
   width: 48px;
   height: 62px;
+  transform: translateZ(0);
 }
 
 .eventMarker__pin::after {
@@ -333,29 +403,32 @@
   position: absolute;
   left: 50%;
   top: 38px;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   transform: translateX(-50%) rotate(45deg);
-  background: var(--marker-bg, rgba(20, 20, 20, 0.55));
-  border-right: 2px solid var(--marker-accent, rgba(255, 255, 255, 0.9));
-  border-bottom: 2px solid var(--marker-accent, rgba(255, 255, 255, 0.9));
-  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.35);
+  background: var(--marker-bg);
+  border: 2px solid var(--marker-accent);
+  border-top: 0;
+  border-left: 0;
+  border-radius: 4px;
+  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.22);
 }
 
 .eventMarker__bubble {
   position: absolute;
   left: 50%;
   top: 0;
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   transform: translateX(-50%);
   border-radius: 999px;
-  background: var(--marker-bg, rgba(20, 20, 20, 0.55));
-  border: 2px solid var(--marker-accent, rgba(255, 255, 255, 0.9));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), var(--marker-bg));
+  border: 2px solid var(--marker-accent);
   box-sizing: border-box;
   box-shadow:
-    0 14px 28px rgba(0, 0, 0, 0.45),
-    0 3px 10px rgba(0, 0, 0, 0.35);
+    0 0 0 var(--marker-glow-spread, 6px) var(--marker-glow),
+    0 14px 28px rgba(0, 0, 0, 0.22),
+    0 6px 14px rgba(0, 0, 0, 0.14);
   overflow: hidden;
   backdrop-filter: blur(6px);
 
@@ -364,8 +437,27 @@
   justify-content: center;
 }
 
+.eventMarker__bubble::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--marker-stroke);
+  pointer-events: none;
+}
+
+.eventMarker__content {
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .eventMarker__label {
-  color: rgba(255, 255, 255, 0.96);
+  color: rgba(17, 24, 39, 0.92);
   font-weight: 800;
   font-size: 12px;
   letter-spacing: 0.02em;

@@ -2,6 +2,31 @@ import React, { useEffect, useState } from 'react';
 import EventDetailsModal, { type EventForModal } from './EventDetailsModal';
 import './EventsPage.css';
 
+import assetsManifest from '../assets.r2.json';
+
+type AssetsManifest = Record<string, { key: string; url: string }>;
+
+const assets = assetsManifest as AssetsManifest;
+
+function assetUrl(name: string): string {
+  return assets[name]?.url ?? '';
+}
+
+function normalizeCategory(value: string | undefined) {
+  const v = (value ?? '').trim();
+  if (v === '24h' || v === '12h' || v === 'Skirmish') return v;
+  return 'Skirmish';
+}
+
+function getCategoryIconUrl(categoryRaw: string | undefined) {
+  const category = normalizeCategory(categoryRaw);
+  return category === '24h'
+    ? assetUrl('24h.jpg')
+    : category === '12h'
+      ? assetUrl('12h.jpg')
+      : assetUrl('Skirmish.webp');
+}
+
 function formatDateDDMMYYYY(value: string) {
   const d = new Date(value);
   if (!Number.isFinite(d.getTime())) return value;
@@ -57,6 +82,28 @@ interface Event {
   facebook_link?: string;
   lat: number;
   lng: number;
+}
+
+function truncateToWordCount(text: string, maxWords: number) {
+  const trimmed = text
+    .trim()
+    .replace(/\u00A0/g, ' ')
+    .replace(/\u200B/g, ' ')
+    .replace(/\u200C/g, ' ')
+    .replace(/\u200D/g, ' ')
+    .replace(/\uFEFF/g, ' ');
+  if (!trimmed) return { preview: '', truncated: false };
+  if (maxWords <= 0) return { preview: '', truncated: true };
+
+  const tokens = trimmed.split(/\s+/).filter(Boolean);
+  if (tokens.length <= maxWords) return { preview: trimmed, truncated: false };
+  return { preview: tokens.slice(0, maxWords).join(' '), truncated: true };
+}
+
+function truncateToCharCount(text: string, maxChars: number) {
+  const trimmed = text.trim();
+  if (trimmed.length <= maxChars) return { preview: trimmed, truncated: false };
+  return { preview: trimmed.slice(0, maxChars).trimEnd(), truncated: true };
 }
 
 type EventsPageProps = {
@@ -251,7 +298,12 @@ const EventsPage: React.FC<EventsPageProps> = ({
             loading="lazy"
           />
         ) : (
-          <div className="eventsPage__thumbPlaceholder" />
+          <img
+            src={getCategoryIconUrl(e.category)}
+            alt={`${normalizeCategory(e.category)} category`}
+            className="eventsPage__thumb eventsPage__thumb--category"
+            loading="lazy"
+          />
         )}
 
         <div className="eventsPage__text">
@@ -261,7 +313,17 @@ const EventsPage: React.FC<EventsPageProps> = ({
           </div>
           {e.date && <div>Date: {formatDateDDMMYYYY(e.date)}</div>}
           {e.location && <div>{e.location}</div>}
-          {e.description && <div>{e.description}</div>}
+          {(() => {
+            const short = (e.description ?? '').trim();
+            if (short) {
+              const { preview, truncated } = truncateToCharCount(short, 400);
+              return <div>{preview}{truncated ? '…' : ''}</div>;
+            }
+            const detailed = (e.detailed_description ?? '').trim();
+            if (!detailed) return null;
+            const { preview, truncated } = truncateToWordCount(detailed, 400);
+            return <div>{preview}{truncated ? '…' : ''}</div>;
+          })()}
 
           {onEditEvent ? (
             <div className="eventsPage__actions">

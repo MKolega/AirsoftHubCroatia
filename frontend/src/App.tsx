@@ -1,4 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
+import {
+  Alert,
+  AppBar,
+  Box,
+  Button,
+  Divider,
+  Drawer,
+  List,
+  ListItemButton,
+  ListItemText,
+  Snackbar,
+  Toolbar,
+  Typography,
+} from '@mui/material';
+import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
+import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
+import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
 import './App.css';
 import EventsMap from './components/EventsMap';
 import EventsPage from './components/EventsPage'; // new file
@@ -118,6 +135,9 @@ function getRouteFromPath(pathname: string): Route {
 }
 
 function App() {
+  const drawerWidth = 260;
+  const topbarHeight = 64;
+
   const [route, setRoute] = useState<Route>(() => getRouteFromPath(window.location.pathname));
 
   const [auth, setAuth] = useState<{ token: string | null; email: string | null }>(() => ({
@@ -262,6 +282,11 @@ function App() {
             : to === 'map'
               ? '/'
               : '/events';
+
+    if (to === 'map') {
+      setMapFocus(null);
+    }
+
     window.history.pushState({}, '', path);
     setRoute(getRouteFromPath(path));
   };
@@ -360,85 +385,182 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <div className="appLayout">
-        {toast ? (
-          <div
-            className={toast.type === 'success' ? 'appToast appToast--success' : 'appToast appToast--error'}
-            role="status"
-            aria-live="polite"
+      <Box sx={{ height: '100vh', display: 'flex' }}>
+        <Snackbar
+          open={Boolean(toast)}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          onClose={() => setToast(null)}
+        >
+          {toast ? (
+            <Alert
+              onClose={() => setToast(null)}
+              severity={toast.type === 'success' ? 'success' : 'error'}
+              variant="filled"
+              sx={{ fontWeight: 800 }}
+            >
+              {toast.message}
+            </Alert>
+          ) : undefined}
+        </Snackbar>
+
+        <AppBar
+          position="fixed"
+          color="primary"
+          elevation={0}
+          sx={{ width: `calc(100% - ${drawerWidth}px)`, ml: `${drawerWidth}px` }}
+        >
+          <Toolbar
+            disableGutters
+            sx={{
+              minHeight: topbarHeight,
+              px: 2,
+              alignItems: 'stretch',
+              display: 'grid',
+              gridTemplateColumns: '1fr auto 1fr',
+            }}
           >
-            {toast.message}
-          </div>
-        ) : null}
-        <header className="topbar">
-          <div className="topbar__inner">
-            <div className="topbar__title">Airsoft Hub Croatia</div>
-            <nav className="topbar__nav" aria-label="Main navigation">
-              <button
-                type="button"
-                className="topbar__btn"
+            <Box />
+
+            <Box component="nav" aria-label="Main navigation" sx={{ display: 'flex', alignItems: 'stretch' }}>
+              <Button
                 onClick={() => navigate('map')}
-                aria-current={route.page === 'map' ? 'page' : undefined}
+                color="inherit"
+                startIcon={<MapOutlinedIcon sx={{ fontSize: 20 }} />}
+                sx={{
+                  height: '100%',
+                  borderRadius: 0,
+                  px: 3.5,
+                  borderLeft: '1px solid rgba(0, 0, 0, 0.45)',
+                  borderRight: '1px solid rgba(0, 0, 0, 0.45)',
+                  bgcolor: route.page === 'map' ? 'rgba(0,0,0,0.18)' : 'primary.main',
+                  '&:hover': { bgcolor: 'primary.dark' },
+                }}
               >
                 Map
-              </button>
-              <button
-                type="button"
-                className="topbar__btn"
+              </Button>
+              <Button
                 onClick={() => navigate('events')}
-                aria-current={route.page === 'events' || route.page === 'event-detail' ? 'page' : undefined}
+                color="inherit"
+                startIcon={<EventOutlinedIcon sx={{ fontSize: 20 }} />}
+                sx={{
+                  height: '100%',
+                  borderRadius: 0,
+                  px: 3.5,
+                  borderLeft: '1px solid rgba(0, 0, 0, 0.45)',
+                  borderRight: '1px solid rgba(0, 0, 0, 0.45)',
+                  bgcolor:
+                    route.page === 'events' || route.page === 'event-detail' ? 'rgba(0,0,0,0.18)' : 'primary.main',
+                  '&:hover': { bgcolor: 'primary.dark' },
+                }}
               >
                 Events
-              </button>
-            </nav>
+              </Button>
+            </Box>
 
-            <div className="topbar__right">
-              <button
-                type="button"
-                className="topbar__btn"
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+              <Button
                 onClick={() => navigate('auth')}
-                aria-current={route.page === 'auth' ? 'page' : undefined}
+                variant={route.page === 'auth' ? 'contained' : 'outlined'}
+                color={route.page === 'auth' ? 'secondary' : 'inherit'}
+                startIcon={<AccountCircleOutlinedIcon sx={{ fontSize: 20 }} />}
+                sx={{
+                  borderColor: 'rgba(255,255,255,0.55)',
+                  color: '#fff',
+                  '&:hover': {
+                    borderColor: 'rgba(255,255,255,0.75)',
+                    bgcolor: 'rgba(255,255,255,0.08)',
+                  },
+                }}
               >
                 {isSignedIn ? 'Account' : 'Sign in'}
-              </button>
-            </div>
-          </div>
-        </header>
+              </Button>
+            </Box>
+          </Toolbar>
+        </AppBar>
 
-        <div className="appBody">
-          <aside className="sidebar" aria-label="Upcoming events">
-            <div className="sidebar__section">
-              <div className="sidebar__title">Upcoming events</div>
-              {sidebarError ? (
-                <div className="sidebar__meta">Error: {sidebarError}</div>
-              ) : sortedSidebarEvents.length === 0 ? (
-                <div className="sidebar__meta">No events.</div>
-              ) : (
-                <div className="eventsMiniList">
-                  {sortedSidebarEvents.map(e => (
-                    <button
-                      key={e.id}
-                      type="button"
-                      className="eventsMiniList__item"
-                      onClick={() => focusEventOnMap(e.id)}
-                      aria-label={`Show on map: ${e.name}`}
-                    >
-                      <div className="eventsMiniList__name">{e.name}</div>
-                      <div className="eventsMiniList__tagRow">
-                        <span className="eventCategoryBadge">{(e.category ?? 'Skirmish').trim() || 'Skirmish'}</span>
-                      </div>
-                      <div className="eventsMiniList__meta">
-                        {e.date ? formatDateDDMMYYYY(e.date) : 'No date'}
-                        {e.location ? ` • ${e.location}` : ''}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </aside>
+        <Drawer
+          variant="permanent"
+          sx={{
+            width: drawerWidth,
+            flexShrink: 0,
+            '& .MuiDrawer-paper': {
+              width: drawerWidth,
+              boxSizing: 'border-box',
+              bgcolor: 'background.default',
+              color: 'text.primary',
+              borderRight: '1px solid',
+              borderColor: 'divider',
+            },
+          }}
+        >
+          <Box
+            sx={{
+              height: topbarHeight,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              px: 1.5,
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 900, letterSpacing: '0.02em', color: 'primary.main' }}
+              noWrap
+            >
+              Airsoft Hub Croatia
+            </Typography>
+          </Box>
 
-          <main className="content">
+          <Box sx={{ p: 1.5, pt: 1.25 }}>
+            <Typography
+              variant="overline"
+              sx={{ color: 'text.secondary', letterSpacing: '0.08em', fontWeight: 900 , alignItems: 'center',
+              justifyContent: 'center', display: 'flex', gap: 0.5}}
+            >
+              Upcoming events
+            </Typography>
+            <Divider sx={{ my: 1.25 }} />
+
+            {sidebarError ? (
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                Error: {sidebarError}
+              </Typography>
+            ) : sortedSidebarEvents.length === 0 ? (
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                No events.
+              </Typography>
+            ) : (
+              <List disablePadding sx={{ display: 'grid', gap: 1 }}>
+                {sortedSidebarEvents.map(e => (
+                  <ListItemButton
+                    key={e.id}
+                    onClick={() => focusEventOnMap(e.id)}
+                    sx={{
+                      borderRadius: 2,
+                      bgcolor: 'background.paper',
+                      color: 'text.primary',
+                      border: '1px solid rgba(17, 24, 39, 0.12)',
+                      '&:hover': { bgcolor: 'action.hover' },
+                    }}
+                  >
+                    <ListItemText
+                      primary={e.name}
+                      secondary={`${e.date ? formatDateDDMMYYYY(e.date) : 'No date'}${e.location ? ` • ${e.location}` : ''}`}
+                      primaryTypographyProps={{ noWrap: true, fontWeight: 800 }}
+                      secondaryTypographyProps={{ noWrap: true }}
+                    />
+                  </ListItemButton>
+                ))}
+              </List>
+            )}
+          </Box>
+        </Drawer>
+
+        <Box component="main" className="content" sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
+          <Box sx={{ height: topbarHeight }} />
+          <Box sx={{ height: `calc(100vh - ${topbarHeight}px)`, minHeight: 0 }}>
             {route.page === 'map' && (
               <EventsMap
                 onOpenEvent={navigateEvent}
@@ -491,9 +613,9 @@ function App() {
                 onDone={() => navigate('map')}
               />
             )}
-          </main>
-        </div>
-      </div>
+          </Box>
+        </Box>
+      </Box>
     </ErrorBoundary>
   );
 }

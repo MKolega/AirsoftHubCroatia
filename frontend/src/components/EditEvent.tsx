@@ -375,15 +375,25 @@ const EditEvent: React.FC<EditEventProps> = ({ eventId, authToken, onDone }) => 
           </select>
         </label>
 
-        <textarea name="description" placeholder="Description" value={form.description} onChange={onChange} />
+        <label className="editEvent__field">
+          <span>Small description (optional, shown on map markers)</span>
+          <textarea
+            name="description"
+            placeholder="Short summary"
+            value={form.description}
+            onChange={onChange}
+            maxLength={400}
+          />
+        </label>
 
         <label className="editEvent__field">
-          <span>Detailed description (shown only in details view)</span>
+          <span>Detailed description (required)</span>
           <textarea
             name="detailedDescription"
-            placeholder="More detailed description"
+            placeholder="Full event details"
             value={form.detailedDescription}
             onChange={onChange}
+            required
           />
         </label>
 
