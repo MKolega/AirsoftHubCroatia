@@ -1,5 +1,5 @@
 .eventsPage__error {
-  color: #dc3545;
+  color: var(--c-danger);
 }
 
 .eventsPage__header {
@@ -7,31 +7,51 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  margin-bottom: 14px;
 }
 
 .eventsPage__title {
   margin-top: 0;
   margin-bottom: 0;
+  font-size: 22px;
+  letter-spacing: 0.01em;
 }
 
 .eventsPage__controls {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .eventsPage__categoryLabel {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.02);
 }
 
 .eventsPage__categoryText {
-  opacity: 0.9;
+  color: var(--c-muted);
+  font-weight: 700;
+  font-size: 13px;
 }
 
 .eventsPage__createBtn {
   white-space: nowrap;
+  border-color: rgba(220, 38, 38, 0.25);
+  background: var(--c-primary);
+  color: #fff;
+}
+
+.eventsPage__createBtn:hover {
+  background: var(--c-primary-strong);
+  border-color: rgba(220, 38, 38, 0.35);
 }
 
 .eventsPage__section {
@@ -41,6 +61,7 @@
 .eventsPage__sectionTitle {
   font-weight: 800;
   margin-bottom: 10px;
+  color: rgba(17, 24, 39, 0.92);
 }
 
 .eventsPage__section--past {
@@ -67,7 +88,7 @@
   height: 72px;
   object-fit: cover;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--c-border);
   flex: 0 0 auto;
 }
 
@@ -75,8 +96,8 @@
   width: 72px;
   height: 72px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--c-border);
+  background: var(--c-surface-2);
   flex: 0 0 auto;
 }
 

@@ -20,7 +20,7 @@
 }
 
 .authPage__signedInText {
-  opacity: 0.95;
+  color: rgba(17, 24, 39, 0.92);
 }
 
 .authPage__profileGrid {
@@ -48,14 +48,15 @@
 
 .authPage__sectionTitle {
   font-weight: 800;
+  color: rgba(17, 24, 39, 0.92);
 }
 
 .authPage__error {
-  color: #dc3545;
+  color: var(--c-danger);
 }
 
 .authPage__empty {
-  opacity: 0.85;
+  color: var(--c-muted);
 }
 
 .authPage__list {
@@ -72,7 +73,7 @@
 }
 
 .authPage__eventMeta {
-  opacity: 0.85;
+  color: var(--c-muted);
   font-size: 13px;
 }
 
@@ -128,7 +129,7 @@
   font-size: 22px;
   line-height: 1;
   padding: 6px 8px;
-  color: rgba(255, 193, 7, 0.95);
+  color: var(--c-star);
 }
 
 .authPage__submittedCard {
@@ -151,7 +152,7 @@
 }
 
 .authPage__rejection {
-  opacity: 0.9;
+  color: var(--c-muted);
   font-size: 13px;
 }
 
@@ -180,7 +181,7 @@
   position: fixed;
   inset: 0;
   z-index: 2000;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(17, 24, 39, 0.55);
   display: grid;
   place-items: center;
   padding: 16px;
@@ -190,10 +191,11 @@
   width: min(560px, 96vw);
   max-height: 92vh;
   overflow: auto;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(20, 20, 20, 0.95);
-  backdrop-filter: blur(10px);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--c-border);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: var(--shadow-2);
+  backdrop-filter: blur(12px);
   padding: 14px;
 }
 
@@ -208,6 +210,7 @@
   font-size: 18px;
   font-weight: 800;
   line-height: 1.15;
+  color: var(--c-text);
 }
 
 .authPage__modalForm {
@@ -222,7 +225,7 @@
 }
 
 .authPage__fieldHint {
-  opacity: 0.9;
+  color: var(--c-muted);
 }
 
 .authPage__modalActions {
@@ -233,5 +236,5 @@
 }
 
 .authPage__profileStatus {
-  opacity: 0.95;
+  color: var(--c-muted);
 }

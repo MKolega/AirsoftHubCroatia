@@ -1,0 +1,118 @@
+.eventsMap {
+  height: 100%;
+  width: 100%;
+  position: relative;
+  background: var(--c-surface-2);
+}
+
+.eventsMap__error {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1100;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(185, 28, 28, 0.28);
+  background: rgba(185, 28, 28, 0.10);
+  color: var(--c-danger);
+  box-shadow: var(--shadow-1);
+  max-width: min(520px, calc(100vw - 24px));
+}
+
+.eventsMap__panel {
+  position: absolute;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  box-shadow: var(--shadow-1);
+  backdrop-filter: blur(10px);
+}
+
+.eventsMap__panel--filter {
+  top: 12px;
+  right: 12px;
+}
+
+.eventsMap__panel--legend {
+  right: 12px;
+  bottom: 46px;
+}
+
+.eventsMap__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eventsMap__labelText {
+  font-size: 12px;
+  color: var(--c-muted);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.eventsMap__select {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--c-surface);
+}
+
+.eventsMap__legendTitle {
+  font-size: 12px;
+  color: var(--c-muted);
+  margin-bottom: 8px;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.eventsMap__legendGrid {
+  display: grid;
+  gap: 8px;
+}
+
+.eventsMap__legendRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eventsMap__legendIcon {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid var(--c-border);
+}
+
+.eventsMap__legendText {
+  font-size: 12px;
+  color: rgba(17, 24, 39, 0.92);
+  font-weight: 700;
+}
+
+.eventsMap__map {
+  height: 100%;
+  width: 100%;
+}
+
+.eventsMap__popupTitleBtn {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font-weight: 900;
+  color: var(--c-primary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.eventsMap__popupTitleBtn:disabled,
+.eventsMap__popupTitleBtn[aria-disabled="true"] {
+  opacity: 0.75;
+  cursor: default;
+  text-decoration: none;
+}

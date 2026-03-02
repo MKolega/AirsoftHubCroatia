@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import * as L from 'leaflet';
 import axios from 'axios';
+import './EventsMap.css';
 
 import assetsManifest from '../assets.r2.json';
 
@@ -199,25 +200,17 @@ const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent, focusEventId, focusT
   }, []);
 
   return (
-    <div style={{ height: '100%', width: '100%', position: 'relative' }}>
-      {error && <div style={{ color: 'red', padding: 8 }}>Error: {error}</div>}
+    <div className="eventsMap">
+      {error ? <div className="eventsMap__error">Error: {error}</div> : null}
 
-      <div
-        style={{
-          position: 'absolute',
-          top: 12,
-          right: 12,
-          zIndex: 1000,
-          background: 'rgba(0,0,0,0.55)',
-          border: '1px solid rgba(255,255,255,0.18)',
-          borderRadius: 10,
-          padding: '10px 12px',
-          backdropFilter: 'blur(6px)',
-        }}
-      >
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 12, opacity: 0.9 }}>Category</span>
-          <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
+      <div className="eventsMap__panel eventsMap__panel--filter">
+        <label className="eventsMap__label">
+          <span className="eventsMap__labelText">Category</span>
+          <select
+            className="eventsMap__select"
+            value={categoryFilter}
+            onChange={e => setCategoryFilter(e.target.value)}
+          >
             <option value="All">All</option>
             <option value="24h">24h</option>
             <option value="12h">12h</option>
@@ -226,42 +219,25 @@ const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent, focusEventId, focusT
         </label>
       </div>
 
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 46,
-          right: 12,
-          zIndex: 1000,
-          background: 'rgba(0,0,0,0.55)',
-          border: '1px solid rgba(255,255,255,0.18)',
-          borderRadius: 10,
-          padding: '10px 12px',
-          backdropFilter: 'blur(6px)',
-        }}
-        aria-label="Map legend"
-      >
-        <div style={{ fontSize: 12, opacity: 0.9, marginBottom: 8, fontWeight: 700 }}>Legend</div>
-        <div style={{ display: 'grid', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img src={getCategoryIconUrl('24h')} alt="24h" style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'cover' }} />
-            <span style={{ fontSize: 12, opacity: 0.95 }}>24h</span>
+      <div className="eventsMap__panel eventsMap__panel--legend" aria-label="Map legend">
+        <div className="eventsMap__legendTitle">Legend</div>
+        <div className="eventsMap__legendGrid">
+          <div className="eventsMap__legendRow">
+            <img src={getCategoryIconUrl('24h')} alt="24h" className="eventsMap__legendIcon" />
+            <span className="eventsMap__legendText">24h</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img src={getCategoryIconUrl('12h')} alt="12h" style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'cover' }} />
-            <span style={{ fontSize: 12, opacity: 0.95 }}>12h</span>
+          <div className="eventsMap__legendRow">
+            <img src={getCategoryIconUrl('12h')} alt="12h" className="eventsMap__legendIcon" />
+            <span className="eventsMap__legendText">12h</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img
-              src={getCategoryIconUrl('Skirmish')}
-              alt="Skirmish"
-              style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'cover' }}
-            />
-            <span style={{ fontSize: 12, opacity: 0.95 }}>Skirmish</span>
+          <div className="eventsMap__legendRow">
+            <img src={getCategoryIconUrl('Skirmish')} alt="Skirmish" className="eventsMap__legendIcon" />
+            <span className="eventsMap__legendText">Skirmish</span>
           </div>
         </div>
       </div>
 
-      <MapContainer center={[44.7, 16]} zoom={7.5} style={{ height: '100%', width: '100%' }}>
+      <MapContainer center={[44.7, 16]} zoom={7.5} className="eventsMap__map">
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -291,18 +267,10 @@ const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent, focusEventId, focusT
                 <div>
                   <button
                     type="button"
+                    className="eventsMap__popupTitleBtn"
                     onClick={() => onOpenEvent?.(event.id)}
                     disabled={!onOpenEvent}
                     aria-disabled={!onOpenEvent}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      padding: 0,
-                      fontWeight: 800,
-                      color: 'inherit',
-                      textDecoration: 'underline',
-                      cursor: onOpenEvent ? 'pointer' : 'default',
-                    }}
                   >
                     {event.name}
                   </button>
