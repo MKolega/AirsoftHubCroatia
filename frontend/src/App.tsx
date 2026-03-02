@@ -133,7 +133,7 @@ function getRouteFromPath(pathname: string): Route {
 
 function App() {
   const drawerWidth = 260;
-  const topbarHeight = 56;
+  const topbarHeight = 64;
 
   const [route, setRoute] = useState<Route>(() => getRouteFromPath(window.location.pathname));
 
@@ -475,9 +475,10 @@ function App() {
             '& .MuiDrawer-paper': {
               width: drawerWidth,
               boxSizing: 'border-box',
-              bgcolor: 'primary.main',
-              color: '#fff',
-              borderRight: '1px solid rgba(0, 0, 0, 0.10)',
+              bgcolor: 'background.default',
+              color: 'text.primary',
+              borderRight: '1px solid',
+              borderColor: 'divider',
             },
           }}
         >
@@ -488,10 +489,15 @@ function App() {
               alignItems: 'center',
               justifyContent: 'center',
               px: 1.5,
-              borderBottom: '1px solid rgba(0, 0, 0, 0.10)',
+              borderBottom: '1px solid',
+              borderColor: 'divider',
             }}
           >
-            <Typography variant="subtitle1" sx={{ fontWeight: 900, letterSpacing: '0.02em' }} noWrap>
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 900, letterSpacing: '0.02em', color: 'primary.main' }}
+              noWrap
+            >
               Airsoft Hub Croatia
             </Typography>
           </Box>
@@ -499,18 +505,19 @@ function App() {
           <Box sx={{ p: 1.5, pt: 1.25 }}>
             <Typography
               variant="overline"
-              sx={{ color: 'rgba(255,255,255,0.90)', letterSpacing: '0.08em', fontWeight: 900 }}
+              sx={{ color: 'text.secondary', letterSpacing: '0.08em', fontWeight: 900 , alignItems: 'center',
+              justifyContent: 'center', display: 'flex', gap: 0.5}}
             >
               Upcoming events
             </Typography>
-            <Divider sx={{ my: 1.25, borderColor: 'rgba(255,255,255,0.18)' }} />
+            <Divider sx={{ my: 1.25 }} />
 
             {sidebarError ? (
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.88)' }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 Error: {sidebarError}
               </Typography>
             ) : sortedSidebarEvents.length === 0 ? (
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.88)' }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 No events.
               </Typography>
             ) : (
@@ -521,10 +528,10 @@ function App() {
                     onClick={() => focusEventOnMap(e.id)}
                     sx={{
                       borderRadius: 2,
-                      bgcolor: '#fff',
+                      bgcolor: 'background.paper',
                       color: 'text.primary',
                       border: '1px solid rgba(17, 24, 39, 0.12)',
-                      '&:hover': { bgcolor: 'rgba(246, 247, 249, 1)' },
+                      '&:hover': { bgcolor: 'action.hover' },
                     }}
                   >
                     <ListItemText
