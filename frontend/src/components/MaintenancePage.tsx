@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import './MaintenancePage.css';
+import { Alert, Box, Button, Paper, Stack, TextField, Typography } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 
 type MaintenancePageProps = {
   onAuthUpdate: (token: string | null, email: string | null) => void;
@@ -17,6 +18,7 @@ type MeResponse = {
 };
 
 const MaintenancePage: React.FC<MaintenancePageProps> = ({ onAuthUpdate }) => {
+  const theme = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState<string | null>(null);
@@ -87,48 +89,83 @@ const MaintenancePage: React.FC<MaintenancePageProps> = ({ onAuthUpdate }) => {
   };
 
   return (
-    <div className="maintenance">
-      <div className="maintenance__card">
-        <h1 className="maintenance__title">Under Maintenance</h1>
-        <p className="maintenance__text">
-          The site is temporarily unavailable. Admin access is required.
-        </p>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        px: 3,
+        py: 4,
+        background: `
+          radial-gradient(900px 420px at 15% 10%, ${alpha(theme.palette.primary.main, 0.10)} 0%, transparent 55%),
+          radial-gradient(900px 420px at 85% 25%, ${alpha(theme.palette.common.black, 0.04)} 0%, transparent 55%),
+          ${theme.palette.background.default}
+        `,
+      }}
+    >
+      <Paper
+        elevation={0}
+        variant="outlined"
+        sx={{
+          width: '100%',
+          maxWidth: 460,
+          p: 2.5,
+          borderRadius: 3,
+          boxShadow: theme.shadows[2],
+        }}
+      >
+        <Stack spacing={1.5}>
+          <Typography variant="h5" fontWeight={900} letterSpacing="0.01em">
+            Under Maintenance
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            The site is temporarily unavailable. Admin access is required.
+          </Typography>
 
-        <form className="maintenance__form" onSubmit={submit}>
-          <label className="maintenance__label">
-            <span>Email</span>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              autoComplete="email"
-              required
-            />
-          </label>
+          <Box component="form" onSubmit={submit} sx={{ mt: 0.5 }}>
+            <Stack spacing={1.25}>
+              <TextField
+                label="Email"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+                size="small"
+                fullWidth
+                disabled={submitting}
+              />
+              <TextField
+                label="Password"
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+                size="small"
+                fullWidth
+                disabled={submitting}
+              />
 
-          <label className="maintenance__label">
-            <span>Password</span>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              autoComplete="current-password"
-              required
-            />
-          </label>
+              {status ? (
+                <Alert severity="error" variant="outlined">
+                  {status}
+                </Alert>
+              ) : null}
 
-          {status && <div className="maintenance__status">{status}</div>}
+              <Button type="submit" variant="contained" fullWidth disabled={submitting}>
+                {submitting ? 'Signing in…' : 'Admin login'}
+              </Button>
+            </Stack>
+          </Box>
 
-          <button className="maintenance__button" type="submit" disabled={submitting}>
-            {submitting ? 'Signing in…' : 'Admin login'}
-          </button>
-        </form>
-
-        <div className="maintenance__hint">
-          If you’re the admin, sign in to access the site.
-        </div>
-      </div>
-    </div>
+          <Typography variant="caption" color="text.secondary">
+            If you’re the admin, sign in to access the site.
+          </Typography>
+        </Stack>
+      </Paper>
+    </Box>
   );
 };
 
