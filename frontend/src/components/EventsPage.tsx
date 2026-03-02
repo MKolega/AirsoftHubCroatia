@@ -84,26 +84,32 @@ interface Event {
   lng: number;
 }
 
-function truncateToWordCount(text: string, maxWords: number) {
-  const trimmed = text
+function normalizeText(value: string) {
+  return value
     .trim()
     .replace(/\u00A0/g, ' ')
     .replace(/\u200B/g, ' ')
     .replace(/\u200C/g, ' ')
     .replace(/\u200D/g, ' ')
-    .replace(/\uFEFF/g, ' ');
-  if (!trimmed) return { preview: '', truncated: false };
-  if (maxWords <= 0) return { preview: '', truncated: true };
-
-  const tokens = trimmed.split(/\s+/).filter(Boolean);
-  if (tokens.length <= maxWords) return { preview: trimmed, truncated: false };
-  return { preview: tokens.slice(0, maxWords).join(' '), truncated: true };
+    .replace(/\uFEFF/g, ' ')
+    .trim();
 }
 
 function truncateToCharCount(text: string, maxChars: number) {
-  const trimmed = text.trim();
-  if (trimmed.length <= maxChars) return { preview: trimmed, truncated: false };
-  return { preview: trimmed.slice(0, maxChars).trimEnd(), truncated: true };
+  const trimmed = normalizeText(text);
+  if (!trimmed) return { preview: '', truncated: false };
+  if (maxChars <= 0) return { preview: '', truncated: true };
+
+  const chars = Array.from(trimmed);
+  if (chars.length <= maxChars) return { preview: trimmed, truncated: false };
+
+  let preview = chars.slice(0, maxChars).join('').trimEnd();
+  const lastSpace = preview.lastIndexOf(' ');
+  if (lastSpace >= Math.floor(maxChars * 0.55)) {
+    preview = preview.slice(0, lastSpace).trimEnd();
+  }
+
+  return { preview, truncated: true };
 }
 
 type EventsPageProps = {
@@ -321,7 +327,7 @@ const EventsPage: React.FC<EventsPageProps> = ({
             }
             const detailed = (e.detailed_description ?? '').trim();
             if (!detailed) return null;
-            const { preview, truncated } = truncateToWordCount(detailed, 400);
+            const { preview, truncated } = truncateToCharCount(detailed, 400);
             return <div>{preview}{truncated ? '…' : ''}</div>;
           })()}
 
