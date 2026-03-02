@@ -13,6 +13,9 @@ import {
   Toolbar,
   Typography,
 } from '@mui/material';
+import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
+import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
+import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
 import './App.css';
 import EventsMap from './components/EventsMap';
 import EventsPage from './components/EventsPage'; // new file
@@ -279,6 +282,11 @@ function App() {
             : to === 'map'
               ? '/'
               : '/events';
+
+    if (to === 'map') {
+      setMapFocus(null);
+    }
+
     window.history.pushState({}, '', path);
     setRoute(getRouteFromPath(path));
   };
@@ -417,6 +425,7 @@ function App() {
               <Button
                 onClick={() => navigate('map')}
                 color="inherit"
+                startIcon={<MapOutlinedIcon sx={{ fontSize: 20 }} />}
                 sx={{
                   height: '100%',
                   borderRadius: 0,
@@ -432,6 +441,7 @@ function App() {
               <Button
                 onClick={() => navigate('events')}
                 color="inherit"
+                startIcon={<EventOutlinedIcon sx={{ fontSize: 20 }} />}
                 sx={{
                   height: '100%',
                   borderRadius: 0,
@@ -452,6 +462,7 @@ function App() {
                 onClick={() => navigate('auth')}
                 variant={route.page === 'auth' ? 'contained' : 'outlined'}
                 color={route.page === 'auth' ? 'secondary' : 'inherit'}
+                startIcon={<AccountCircleOutlinedIcon sx={{ fontSize: 20 }} />}
                 sx={{
                   borderColor: 'rgba(255,255,255,0.55)',
                   color: '#fff',
