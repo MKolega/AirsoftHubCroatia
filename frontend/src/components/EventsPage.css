@@ -92,6 +92,11 @@
   flex: 0 0 auto;
 }
 
+.eventsPage__thumb--category {
+  object-fit: contain;
+  background: var(--c-surface-2);
+}
+
 .eventsPage__thumbPlaceholder {
   width: 72px;
   height: 72px;

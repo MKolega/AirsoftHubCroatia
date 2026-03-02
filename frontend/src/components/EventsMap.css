@@ -116,3 +116,31 @@
   cursor: default;
   text-decoration: none;
 }
+
+.eventsMap__popupDesc {
+  color: rgba(17, 24, 39, 0.92);
+}
+
+button.eventsMap__popupReadMore {
+  /* Override global button pills (index.css) */
+  all: unset;
+  font: inherit;
+  display: inline;
+  font-weight: 900;
+  color: var(--c-primary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+button.eventsMap__popupReadMore:disabled,
+button.eventsMap__popupReadMore[aria-disabled="true"] {
+  opacity: 0.75;
+  cursor: default;
+  text-decoration: none;
+}
+
+button.eventsMap__popupReadMore:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: 8px;
+}

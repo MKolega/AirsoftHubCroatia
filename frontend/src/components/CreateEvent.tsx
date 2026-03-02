@@ -234,15 +234,25 @@ const AdminCreateEvent: React.FC<AdminCreateEventProps> = ({ authToken, onDone, 
           </select>
         </label>
 
-        <textarea name="description" placeholder="Description" value={form.description} onChange={onChange} />
+        <label className="createEvent__field">
+          <span>Small description (optional, shown in lists/map)</span>
+          <textarea
+            name="description"
+            placeholder="Short summary"
+            value={form.description}
+            onChange={onChange}
+            maxLength={400}
+          />
+        </label>
 
         <label className="createEvent__field">
-          <span>Detailed description (shown only in details view)</span>
+          <span>Detailed description (required)</span>
           <textarea
             name="detailedDescription"
-            placeholder="More detailed description"
+            placeholder="Full event details"
             value={form.detailedDescription}
             onChange={onChange}
+            required
           />
         </label>
 

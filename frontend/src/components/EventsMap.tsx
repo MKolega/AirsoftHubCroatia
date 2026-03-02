@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import * as L from 'leaflet';
 import axios from 'axios';
+import { alpha, useTheme } from '@mui/material/styles';
 import './EventsMap.css';
 
 import assetsManifest from '../assets.r2.json';
@@ -68,6 +69,7 @@ interface Event {
   id: number;
   name: string;
   description?: string;
+  detailed_description?: string;
   location?: string;
   date?: string;
   lat: number;
@@ -138,6 +140,7 @@ L.Icon.Default.mergeOptions({
 });
 
 const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent, focusEventId, focusToken, authToken }) => {
+  const theme = useTheme();
   const [events, setEvents] = useState<Event[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -169,21 +172,46 @@ const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent, focusEventId, focusT
     return () => controller.abort();
   }, [authToken]);
 
-  const createCategoryIcon = (categoryRaw?: string) => {
-    const category = normalizeCategory(categoryRaw);
-    const suffix = categoryClassSuffix(category);
+  const createCategoryIcon = useMemo(() => {
+    return (categoryRaw?: string) => {
+      const category = normalizeCategory(categoryRaw);
+      const suffix = categoryClassSuffix(category);
 
-    const iconUrl = getCategoryIconUrl(category);
-    const bubbleInner = `<img class="eventMarker__img" src="${iconUrl}" alt="${category}" />`;
+   
+      const accent =
+        category === '24h'
+          ? theme.palette.primary.main
+          : category === '12h'
+            ? theme.palette.warning.main
+            : theme.palette.success.main;
 
-	return L.divIcon({
-		className: `eventMarker eventMarker--${suffix}`,
-	  html: `<div class="eventMarker__pin"><div class="eventMarker__bubble">${bubbleInner}</div></div>`,
-      iconSize: [48, 62],
-      iconAnchor: [24, 62],
-      popupAnchor: [0, -56],
-	});
-  };
+      const markerBg = alpha(theme.palette.background.paper, 0.94);
+      const markerStroke = alpha(theme.palette.common.black, 0.10);
+
+      const glowAlpha = category === '24h' ? 0.34 : category === '12h' ? 0.20 : 0.26;
+      const glowSpread = category === '24h' ? 8 : category === '12h' ? 5 : 7;
+      const markerGlow = alpha(accent, glowAlpha);
+
+      const style = `--marker-accent:${accent};--marker-bg:${markerBg};--marker-glow:${markerGlow};--marker-glow-spread:${glowSpread}px;--marker-stroke:${markerStroke};`;
+
+      const iconUrl = getCategoryIconUrl(category);
+      const bubbleInner = `<img class="eventMarker__img" src="${iconUrl}" alt="${category}" />`;
+
+      return L.divIcon({
+        className: `eventMarker eventMarker--${suffix}`,
+        html: `<div class="eventMarker__pin" style="${style}"><div class="eventMarker__bubble"><div class="eventMarker__content">${bubbleInner}</div></div></div>`,
+        iconSize: [48, 62],
+        iconAnchor: [24, 62],
+        popupAnchor: [0, -56],
+      });
+    };
+  }, [
+    theme.palette.background.paper,
+    theme.palette.common.black,
+    theme.palette.primary.main,
+    theme.palette.success.main,
+    theme.palette.warning.main,
+  ]);
 
   const upcomingEvents = events.filter(e => !isPastEventDate(e.date));
 
@@ -191,6 +219,73 @@ const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent, focusEventId, focusT
     categoryFilter === 'All'
       ? upcomingEvents
       : upcomingEvents.filter(e => (e.category ?? 'Skirmish') === categoryFilter);
+
+  const normalizeText = (value: string) => {
+    return value
+      .trim()
+      // Normalize common "invisible" separators from copy/paste
+      .replace(/\u00A0/g, ' ')
+      .replace(/\u200B/g, ' ')
+      .replace(/\u200C/g, ' ')
+      .replace(/\u200D/g, ' ')
+      .replace(/\uFEFF/g, ' ')
+      .trim();
+  };
+
+  const truncateToCharCount = (text: string, maxChars: number) => {
+    const trimmed = normalizeText(text);
+    if (!trimmed) return { preview: '', truncated: false };
+    if (maxChars <= 0) return { preview: '', truncated: true };
+
+    // Count by unicode code points (safer than UTF-16 code units).
+    const chars = Array.from(trimmed);
+    if (chars.length <= maxChars) return { preview: trimmed, truncated: false };
+
+    let preview = chars.slice(0, maxChars).join('').trimEnd();
+
+    // Prefer not to cut mid-word when possible.
+    const lastSpace = preview.lastIndexOf(' ');
+    if (lastSpace >= Math.floor(maxChars * 0.55)) {
+      preview = preview.slice(0, lastSpace).trimEnd();
+    }
+
+    return { preview, truncated: true };
+  };
+
+  const renderPopupDescription = (event: Event) => {
+    const short = normalizeText(event.description ?? '');
+    const detailed = normalizeText(event.detailed_description ?? '');
+
+    // Prefer the short description if it exists. This keeps map popups compact and
+    // avoids legacy events (pre-limit) showing huge blocks of text.
+    const source = short || detailed;
+    if (!source) return null;
+
+    // Map popup preview is capped to 250 characters.
+    // (Short description is still limited to 400 chars on input, but we keep popups tighter.)
+    const result = truncateToCharCount(source, 250);
+    const { preview, truncated } = result;
+
+    return (
+      <div className="eventsMap__popupDesc">
+        <span>{preview}</span>
+        {truncated ? (
+          <>
+            <span>… </span>
+            <button
+              type="button"
+              className="eventsMap__popupReadMore"
+              onClick={() => onOpenEvent?.(event.id)}
+              disabled={!onOpenEvent}
+              aria-disabled={!onOpenEvent}
+            >
+              Read more
+            </button>
+          </>
+        ) : null}
+      </div>
+    );
+  };
 
   const ensureFocusedEventVisible = useMemo(() => {
     return () => {
@@ -277,7 +372,7 @@ const EventsMap: React.FC<EventsMapProps> = ({ onOpenEvent, focusEventId, focusT
                   <div>Category: {event.category ?? 'Skirmish'}</div>
                   {event.date && <div>Date: {formatDateDDMMYYYY(event.date)}</div>}
                   {event.location && <div>{event.location}</div>}
-                  {event.description && <div>{event.description}</div>}
+                  {renderPopupDescription(event)}
                 </div>
               </Popup>
             </Marker>
