@@ -6,16 +6,20 @@ import {
   Button,
   Divider,
   Drawer,
+  IconButton,
   List,
   ListItemButton,
   ListItemText,
   Snackbar,
   Toolbar,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
 import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
 import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
+import MenuOutlinedIcon from '@mui/icons-material/MenuOutlined';
 import './App.css';
 import EventsMap from './components/EventsMap';
 import EventsPage from './components/EventsPage'; // new file
@@ -137,8 +141,11 @@ function getRouteFromPath(pathname: string): Route {
 function App() {
   const drawerWidth = 260;
   const topbarHeight = 64;
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
 
   const [route, setRoute] = useState<Route>(() => getRouteFromPath(window.location.pathname));
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const [auth, setAuth] = useState<{ token: string | null; email: string | null }>(() => ({
     token: window.localStorage.getItem('authToken'),
@@ -159,6 +166,13 @@ function App() {
 
   const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
   const [maintenanceChecked, setMaintenanceChecked] = useState(false);
+
+  const isSidebarOpen = isDesktop ? true : mobileSidebarOpen;
+
+  const toggleSidebar = () => {
+    if (isDesktop) return;
+    setMobileSidebarOpen(prev => !prev);
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -379,13 +393,16 @@ function App() {
   };
 
   const focusEventOnMap = (eventId: number) => {
+    if (!isDesktop) setMobileSidebarOpen(false);
     navigate('map');
     setMapFocus(prev => ({ eventId, token: (prev?.token ?? 0) + 1 }));
   };
 
+  const isDesktopSidebarVisible = isDesktop;
+
   return (
     <ErrorBoundary>
-      <Box sx={{ height: '100vh', display: 'flex' }}>
+      <Box sx={{ minHeight: '100dvh', display: 'flex' }}>
         <Snackbar
           open={Boolean(toast)}
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
@@ -407,21 +424,43 @@ function App() {
           position="fixed"
           color="primary"
           elevation={0}
-          sx={{ width: `calc(100% - ${drawerWidth}px)`, ml: `${drawerWidth}px` }}
+          sx={{
+            width: isDesktopSidebarVisible ? `calc(100% - ${drawerWidth}px)` : '100%',
+            ml: isDesktopSidebarVisible ? `${drawerWidth}px` : 0,
+            transition: theme.transitions.create(['width', 'margin'], {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.standard,
+            }),
+          }}
         >
           <Toolbar
             disableGutters
             sx={{
               minHeight: topbarHeight,
-              px: 2,
+              px: { xs: 1, sm: 2 },
               alignItems: 'stretch',
               display: 'grid',
-              gridTemplateColumns: '1fr auto 1fr',
+              gridTemplateColumns: 'auto 1fr auto',
+              columnGap: 1,
             }}
           >
-            <Box />
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <IconButton
+                aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+                onClick={toggleSidebar}
+                color="inherit"
+                size="large"
+                sx={{ display: { xs: 'inline-flex', md: 'none' } }}
+              >
+                <MenuOutlinedIcon />
+              </IconButton>
+            </Box>
 
-            <Box component="nav" aria-label="Main navigation" sx={{ display: 'flex', alignItems: 'stretch' }}>
+            <Box
+              component="nav"
+              aria-label="Main navigation"
+              sx={{ display: 'flex', alignItems: 'stretch', justifySelf: 'center' }}
+            >
               <Button
                 onClick={() => navigate('map')}
                 color="inherit"
@@ -429,14 +468,20 @@ function App() {
                 sx={{
                   height: '100%',
                   borderRadius: 0,
-                  px: 3.5,
+                  minWidth: { xs: 44, sm: 96 },
+                  px: { xs: 1.25, sm: 3.5 },
                   borderLeft: '1px solid rgba(0, 0, 0, 0.45)',
                   borderRight: '1px solid rgba(0, 0, 0, 0.45)',
                   bgcolor: route.page === 'map' ? 'rgba(0,0,0,0.18)' : 'primary.main',
                   '&:hover': { bgcolor: 'primary.dark' },
+                  '& .MuiButton-startIcon': {
+                    margin: { xs: 0, sm: '0 8px 0 -4px' },
+                  },
                 }}
               >
-                Map
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                  Map
+                </Box>
               </Button>
               <Button
                 onClick={() => navigate('events')}
@@ -445,15 +490,21 @@ function App() {
                 sx={{
                   height: '100%',
                   borderRadius: 0,
-                  px: 3.5,
+                  minWidth: { xs: 44, sm: 96 },
+                  px: { xs: 1.25, sm: 3.5 },
                   borderLeft: '1px solid rgba(0, 0, 0, 0.45)',
                   borderRight: '1px solid rgba(0, 0, 0, 0.45)',
                   bgcolor:
                     route.page === 'events' || route.page === 'event-detail' ? 'rgba(0,0,0,0.18)' : 'primary.main',
                   '&:hover': { bgcolor: 'primary.dark' },
+                  '& .MuiButton-startIcon': {
+                    margin: { xs: 0, sm: '0 8px 0 -4px' },
+                  },
                 }}
               >
-                Events
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                  Events
+                </Box>
               </Button>
             </Box>
 
@@ -466,20 +517,30 @@ function App() {
                 sx={{
                   borderColor: 'rgba(255,255,255,0.55)',
                   color: '#fff',
+                  minWidth: { xs: 44, sm: 110 },
+                  px: { xs: 1.25, sm: 2 },
+                  '& .MuiButton-startIcon': {
+                    margin: { xs: 0, sm: '0 8px 0 -4px' },
+                  },
                   '&:hover': {
                     borderColor: 'rgba(255,255,255,0.75)',
                     bgcolor: 'rgba(255,255,255,0.08)',
                   },
                 }}
               >
-                {isSignedIn ? 'Account' : 'Sign in'}
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                  {isSignedIn ? 'Account' : 'Sign in'}
+                </Box>
               </Button>
             </Box>
           </Toolbar>
         </AppBar>
 
         <Drawer
-          variant="permanent"
+          variant={isDesktop ? 'persistent' : 'temporary'}
+          open={isDesktop ? true : mobileSidebarOpen}
+          onClose={() => setMobileSidebarOpen(false)}
+          ModalProps={{ keepMounted: true }}
           sx={{
             width: drawerWidth,
             flexShrink: 0,
@@ -560,7 +621,7 @@ function App() {
 
         <Box component="main" className="content" sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
           <Box sx={{ height: topbarHeight }} />
-          <Box sx={{ height: `calc(100vh - ${topbarHeight}px)`, minHeight: 0 }}>
+          <Box sx={{ height: `calc(100dvh - ${topbarHeight}px)`, minHeight: 0 }}>
             {route.page === 'map' && (
               <EventsMap
                 onOpenEvent={navigateEvent}
