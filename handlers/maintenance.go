@@ -26,8 +26,8 @@ func MaintenanceStatusHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"enabled": maintenanceEnabled()})
 }
 
-// MaintenanceGate blocks non-admin access to API routes when MAINTENANCE_MODE is enabled.
-// Auth login + /auth/me are allowed so admins can sign in.
+// MaintenanceGate blocks access to API routes when MAINTENANCE_MODE is enabled.
+// Auth login + /auth/me are allowed so eligible users can sign in.
 func MaintenanceGate() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if !maintenanceEnabled() {
@@ -59,7 +59,7 @@ func MaintenanceGate() gin.HandlerFunc {
 		}
 
 		user, err := db.GetUserByEmail(email)
-		if err != nil || user == nil || !user.IsAdmin {
+		if err != nil || user == nil || (!user.IsAdmin && !user.IsMaintenanceUser) {
 			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Under maintenance"})
 			c.Abort()
 			return
