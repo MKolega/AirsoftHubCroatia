@@ -23,13 +23,14 @@ type Event struct {
 }
 
 type User struct {
-	ID           int       `bun:"id,pk,autoincrement" json:"id"`
-	Email        string    `bun:"email,unique,notnull" json:"email"`
-	Username     string    `bun:"username" json:"username"`
-	AirsoftClub  string    `bun:"airsoft_club" json:"airsoft_club"`
-	IsAdmin      bool      `bun:"is_admin,notnull" json:"is_admin"`
-	PasswordHash string    `bun:"password_hash,notnull" json:"-"`
-	CreatedAt    time.Time `bun:"created_at,notnull" json:"created_at"`
+	ID                int       `bun:"id,pk,autoincrement" json:"id"`
+	Email             string    `bun:"email,unique,notnull" json:"email"`
+	Username          string    `bun:"username" json:"username"`
+	AirsoftClub       string    `bun:"airsoft_club" json:"airsoft_club"`
+	IsAdmin           bool      `bun:"is_admin,notnull" json:"is_admin"`
+	IsMaintenanceUser bool      `bun:"is_maintenance_user,notnull" json:"is_maintenance_user"`
+	PasswordHash      string    `bun:"password_hash,notnull" json:"-"`
+	CreatedAt         time.Time `bun:"created_at,notnull" json:"created_at"`
 }
 
 // Auth / Profile API DTOs

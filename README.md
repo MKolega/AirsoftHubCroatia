@@ -124,6 +124,9 @@ Key variables:
 - `AUTH_JWT_SECRET` (required)
 - `DATABASE_URL`
 - `DOMAIN` (for Caddy/HTTPS)
+- `MAINTENANCE_MODE`
+- `ADMIN_EMAILS`
+- `MAINTENANCE_USER_EMAILS` (can access during maintenance, regular-user permissions)
 - R2 variables: `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_BASE_URL`
 
 ## Contributing

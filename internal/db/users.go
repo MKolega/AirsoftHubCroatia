@@ -18,6 +18,7 @@ func CreateUsersTable() error {
 			username TEXT,
 			airsoft_club TEXT,
 			is_admin BOOLEAN NOT NULL DEFAULT false,
+			is_maintenance_user BOOLEAN NOT NULL DEFAULT false,
 			password_hash TEXT NOT NULL,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		);`
@@ -31,6 +32,9 @@ func CreateUsersTable() error {
 		return err
 	}
 	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false;`); err != nil {
+		return err
+	}
+	if _, err := Bun.ExecContext(context.Background(), `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_maintenance_user BOOLEAN NOT NULL DEFAULT false;`); err != nil {
 		return err
 	}
 	// Case-insensitive uniqueness for usernames (ignores empty usernames)
@@ -86,6 +90,30 @@ func PromoteAdminsFromEnv() error {
 		if _, err := Bun.ExecContext(
 			context.Background(),
 			`UPDATE users SET is_admin=true WHERE lower(email)=?`,
+			email,
+		); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func PromoteMaintenanceUsersFromEnv() error {
+	raw := strings.TrimSpace(config.GetEnv("MAINTENANCE_USER_EMAILS", ""))
+	if raw == "" {
+		return nil
+	}
+
+	parts := strings.Split(raw, ",")
+	for _, p := range parts {
+		email := strings.ToLower(strings.TrimSpace(p))
+		if email == "" {
+			continue
+		}
+		if _, err := Bun.ExecContext(
+			context.Background(),
+			`UPDATE users SET is_maintenance_user=true WHERE lower(email)=?`,
 			email,
 		); err != nil {
 			return err

@@ -162,6 +162,7 @@ function App() {
   const lastDeniedEditRef = useRef<number | null>(null);
 
   const [meIsAdmin, setMeIsAdmin] = useState(false);
+  const [meIsMaintenanceUser, setMeIsMaintenanceUser] = useState(false);
   const [meChecked, setMeChecked] = useState(false);
 
   const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
@@ -201,6 +202,7 @@ function App() {
     if (!auth.token) {
       queueMicrotask(() => {
         setMeIsAdmin(false);
+        setMeIsMaintenanceUser(false);
         setMeChecked(true);
       });
       return;
@@ -217,12 +219,19 @@ function App() {
       },
     })
       .then(async res => {
-        const data = (await res.json().catch(() => ({}))) as { is_admin?: boolean };
+        const data = (await res.json().catch(() => ({}))) as {
+          is_admin?: boolean;
+          is_maintenance_user?: boolean;
+        };
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         setMeIsAdmin(Boolean(data?.is_admin));
+        setMeIsMaintenanceUser(Boolean(data?.is_maintenance_user));
       })
       .catch(() => {
-        if (!controller.signal.aborted) setMeIsAdmin(false);
+        if (!controller.signal.aborted) {
+          setMeIsAdmin(false);
+          setMeIsMaintenanceUser(false);
+        }
       })
       .finally(() => {
         if (!controller.signal.aborted) setMeChecked(true);
@@ -358,12 +367,12 @@ function App() {
     if (!meChecked) {
       return (
         <pre style={{ padding: 16, whiteSpace: 'pre-wrap' }}>
-          Checking admin access…
+          Checking maintenance access…
         </pre>
       );
     }
 
-    if (!meIsAdmin) {
+    if (!meIsAdmin && !meIsMaintenanceUser) {
       return (
         <ErrorBoundary>
           <MaintenancePage

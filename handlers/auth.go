@@ -20,6 +20,18 @@ func normalizeEmail(raw string) string {
 	return strings.ToLower(strings.TrimSpace(raw))
 }
 
+func emailInCSVList(email string, rawList string) bool {
+	if email == "" {
+		return false
+	}
+	for _, p := range strings.Split(strings.TrimSpace(rawList), ",") {
+		if normalizeEmail(p) == email {
+			return true
+		}
+	}
+	return false
+}
+
 type authClaims struct {
 	Email string `json:"email"`
 	jwt.RegisteredClaims
@@ -170,16 +182,8 @@ func RegisterHandler(c *gin.Context) {
 		club = "No Club/Freelancer"
 	}
 
-	isAdmin := false
-	adminList := strings.TrimSpace(config.GetEnv("ADMIN_EMAILS", ""))
-	if adminList != "" {
-		for _, p := range strings.Split(adminList, ",") {
-			if normalizeEmail(p) == email {
-				isAdmin = true
-				break
-			}
-		}
-	}
+	isAdmin := emailInCSVList(email, config.GetEnv("ADMIN_EMAILS", ""))
+	isMaintenanceUser := emailInCSVList(email, config.GetEnv("MAINTENANCE_USER_EMAILS", ""))
 
 	if _, err := db.GetUserByEmail(email); err == nil {
 		c.JSON(http.StatusConflict, gin.H{"error": "Email already in use"})
@@ -192,7 +196,14 @@ func RegisterHandler(c *gin.Context) {
 		return
 	}
 
-	user := &types.User{Email: email, Username: username, AirsoftClub: club, IsAdmin: isAdmin, PasswordHash: string(hash)}
+	user := &types.User{
+		Email:             email,
+		Username:          username,
+		AirsoftClub:       club,
+		IsAdmin:           isAdmin,
+		IsMaintenanceUser: isMaintenanceUser,
+		PasswordHash:      string(hash),
+	}
 	if err := db.InsertUser(user); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create account"})
 		return
@@ -223,10 +234,11 @@ func MeHandler(c *gin.Context) {
 		club = "No Club/Freelancer"
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"email":        user.Email,
-		"username":     user.Username,
-		"airsoft_club": club,
-		"is_admin":     user.IsAdmin,
+		"email":               user.Email,
+		"username":            user.Username,
+		"airsoft_club":        club,
+		"is_admin":            user.IsAdmin,
+		"is_maintenance_user": user.IsMaintenanceUser,
 	})
 }
 
@@ -275,10 +287,11 @@ func UpdateMeHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"email":        user.Email,
-		"username":     username,
-		"airsoft_club": club,
-		"is_admin":     user.IsAdmin,
+		"email":               user.Email,
+		"username":            username,
+		"airsoft_club":        club,
+		"is_admin":            user.IsAdmin,
+		"is_maintenance_user": user.IsMaintenanceUser,
 	})
 }
 
@@ -307,8 +320,8 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 
-	if maintenanceEnabled() && !user.IsAdmin {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Under maintenance: admins only"})
+	if maintenanceEnabled() && !user.IsAdmin && !user.IsMaintenanceUser {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Under maintenance: restricted access"})
 		return
 	}
 

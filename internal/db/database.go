@@ -140,6 +140,9 @@ func Init() error {
 	if err := PromoteAdminsFromEnv(); err != nil {
 		return err
 	}
+	if err := PromoteMaintenanceUsersFromEnv(); err != nil {
+		return err
+	}
 
 	err = CreateSavedEventsTable()
 	if err != nil {
