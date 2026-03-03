@@ -14,6 +14,7 @@ type LoginResponse = {
 
 type MeResponse = {
   is_admin?: boolean;
+  is_maintenance_user?: boolean;
   error?: string;
 };
 
@@ -72,9 +73,9 @@ const MaintenancePage: React.FC<MaintenancePageProps> = ({ onAuthUpdate }) => {
         throw new Error(meData?.error || `HTTP ${meRes.status}`);
       }
 
-      if (!meData.is_admin) {
+      if (!meData.is_admin && !meData.is_maintenance_user) {
         onAuthUpdate(null, null);
-        throw new Error('Admins only');
+        throw new Error('Maintenance access required');
       }
 
       onAuthUpdate(token, serverEmail || nextEmail);
@@ -120,7 +121,7 @@ const MaintenancePage: React.FC<MaintenancePageProps> = ({ onAuthUpdate }) => {
             Under Maintenance
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            The site is temporarily unavailable. Admin access is required.
+            The site is temporarily unavailable. Authorized maintenance access is required.
           </Typography>
 
           <Box component="form" onSubmit={submit} sx={{ mt: 0.5 }}>
@@ -155,13 +156,13 @@ const MaintenancePage: React.FC<MaintenancePageProps> = ({ onAuthUpdate }) => {
               ) : null}
 
               <Button type="submit" variant="contained" fullWidth disabled={submitting}>
-                {submitting ? 'Signing in…' : 'Admin login'}
+                {submitting ? 'Signing in…' : 'Sign in'}
               </Button>
             </Stack>
           </Box>
 
           <Typography variant="caption" color="text.secondary">
-            If you’re the admin, sign in to access the site.
+            If you have maintenance access, sign in to continue.
           </Typography>
         </Stack>
       </Paper>
