@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { useMediaQuery } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import EventDetailsModal, { type EventForModal } from './EventDetailsModal';
 import './EventsPage.css';
 
@@ -129,6 +131,10 @@ const EventsPage: React.FC<EventsPageProps> = ({
   onCloseEvent,
   authToken,
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const descriptionMaxChars = isMobile ? 100 : 400;
+
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -322,12 +328,12 @@ const EventsPage: React.FC<EventsPageProps> = ({
           {(() => {
             const short = (e.description ?? '').trim();
             if (short) {
-              const { preview, truncated } = truncateToCharCount(short, 400);
+              const { preview, truncated } = truncateToCharCount(short, descriptionMaxChars);
               return <div>{preview}{truncated ? '…' : ''}</div>;
             }
             const detailed = (e.detailed_description ?? '').trim();
             if (!detailed) return null;
-            const { preview, truncated } = truncateToCharCount(detailed, 400);
+            const { preview, truncated } = truncateToCharCount(detailed, descriptionMaxChars);
             return <div>{preview}{truncated ? '…' : ''}</div>;
           })()}
 
